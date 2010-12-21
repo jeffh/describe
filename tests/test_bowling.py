@@ -1,6 +1,6 @@
 from describe import *
 import unittest
-from sample import Bowling
+from bowling import Bowling
 
 class TestBowling(unittest.TestCase):
     def test_change_value(self):
@@ -31,7 +31,7 @@ class TestBowling(unittest.TestCase):
             b.hit(0)
         Value(b.score).should == 0
         Value(b.score).should_not == 1
-        Value(b.score).should == 0
+        Value(b).get.score.should == 0
         
     def test_bowling_all_9s_should_be_90(self):
         b = Bowling()
