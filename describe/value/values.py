@@ -195,6 +195,18 @@ class BaseValue(ValueInternals):
         chgVal.capture_value_as_new()
         chgVal.expect_values_to_be_not_equal()
         return chgVal
+        
+    def instance_of(self, klass):
+        self.expect(isinstance(self.value, klass),
+            "%(value)r %(should)s be of class %(name)s instead of %(value_name)s",
+            name=klass.__name__, value_name=type(self.value).__name__)
+        
+    #@property
+    def true(self):
+        self.expect(bool(self.value), "%(value)r %(should)s logically True.")
+    #@property
+    def false(self):
+        self.expect(not bool(self.value), "%(value)r %(should)s logically False.")
     
     def __eq__(self, other):
         self.expect(self.value == other, "%(value)r %(should)s == %(other)r.", other=other)
