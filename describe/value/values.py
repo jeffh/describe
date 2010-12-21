@@ -217,9 +217,11 @@ class BaseValue(ValueInternals):
     def __nonzero__(self):
         self.expect(bool(self.value), "%(value)r %(should)s be logically True")
         return bool(self.value)
-        
-    def __contains__(self, item):
+    
+    def contain(self, item):
         self.expect(item in self.value, "%(item)r %(should)s be in %(value)r", item=item)
+    #def __contains__(self, item):
+    #    self.expect(item in self.value, "%(item)r %(should)s be in %(value)r", item=item)
     
     def __setitem__(self, key, value):
         raise Exception, "Value is unassignable. Did you mean ==?"
