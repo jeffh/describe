@@ -1,5 +1,6 @@
 from properties import Properties
 from decorators import VerifyDecorator, DeferredDecorator
+import re
 try:
     set
 except ValueError:
@@ -61,6 +62,13 @@ class BuiltinFunctionsMixin(object):
     def __coerce__(self, other): return self.value.__coerce__(other)
     def __enter__(self): return self.value.__enter__()
     def __exit__(self, type, val, trace): return self.value.__exit__(type, val, trace)
+    
+class StringMixin(object):
+    """Comparisons with strings."""
+    def match(self, regex):
+        self.expect(re.search(regex, self.value),
+            "%(regex)r.search(%(value)r) %(should)s return a match.",
+            regex=regex)
         
 class PropertyMixin(object):
     """Allows getting/setting methods of the wrapped object."""

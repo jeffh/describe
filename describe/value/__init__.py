@@ -3,7 +3,7 @@ from mixins import *
 
 __ALL__ = ['Value']
 
-class SharedValue(BuiltinFunctionsMixin, OperatorsMixin, PropertyMixin,
+class SharedValue(BuiltinFunctionsMixin, OperatorsMixin, PropertyMixin, StringMixin,
     InvokerMixin, BaseValue):
     pass
 
