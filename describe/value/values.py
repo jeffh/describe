@@ -184,10 +184,10 @@ class BaseValue(ValueInternals):
     def have(self):
         return NumberValue(len(self.value), self.expect, format="len(%(value)r)")
     
-    def be_close(self, to, delta=0.000001):
+    def be_close_to(self, value, delta=0.000001):
         self.expect(abs(self.value - value) < delta,
             "%(value)r %(should)s == %(other)r +/- %(delta)r",
-            other=to, delta=delta)
+            other=value, delta=delta)
             
     def change(self, obj, attr=None):
         chgVal = ChangeValue(obj, attr, self.expect)
