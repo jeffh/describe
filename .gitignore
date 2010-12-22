@@ -1,1 +1,3 @@
 *.pyc
+/describe.egg-info/
+/dist/
