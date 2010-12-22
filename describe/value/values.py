@@ -13,9 +13,17 @@ class NumberValue(object):
     @property
     def items(self):
         return None
+    
+    @property
+    def item(self):
+        return None
 
     @property
     def elements(self):
+        return None
+    
+    @property
+    def element(self):
         return None
 
     def at_least(self, amount):
