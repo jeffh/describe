@@ -1,7 +1,7 @@
 Describe
 ========
 
-An experimental BDD_ styled framework inspired off of RSpec. The reason of BDD over
+An experimental BDD_ styled framework inspired off of RSpec_. The reason of BDD over
 TDD is out of scope of this article. But this framework is simply a way to try and
 encourage me to do more testing.
 
@@ -11,7 +11,9 @@ encourage me to do more testing.
 Installation
 -------------
 
-As of now, it is not on pip/easy_install (soon!).
+To install, use pip or easy_install::
+
+  pip install describe
 
 Usage
 -----
