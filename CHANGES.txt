@@ -1,6 +1,10 @@
 Changelog
 ==========
 
+0.1.2
+-----
+ - Updated to allow __getitem__ access: Value({'key':'val'}).get['key'].should == 'val'
+
 0.1.1
 ------
  - Added setup.py for pypi.
