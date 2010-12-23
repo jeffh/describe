@@ -6,7 +6,7 @@ class Properties(object):
         self.__describe_wrapper = wrapper
         
     def __getitem__(self, key):
-        return self.__describe_wrapper(getattr(self.__describe_value, key))
+        return self.__describe_wrapper(lambda: self.__describe_value[key], lazy=True)
         
     def __getattr__(self, key):
-        return self[key]
+        return self.__describe_wrapper(lambda: getattr(self.__describe_value, key), lazy=True)
