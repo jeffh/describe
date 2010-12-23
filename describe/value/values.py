@@ -196,6 +196,9 @@ class BaseValue(ValueInternals):
         self.expect(abs(self.value - value) < delta,
             "%(value)r %(should)s == %(other)r +/- %(delta)r",
             other=value, delta=delta)
+    
+    def close_to(self, value, delta=0.000001):
+        return self.be_close_to(value, delta)
             
     def change(self, obj, attr=None):
         chgVal = ChangeValue(obj, attr, self.expect)
@@ -208,6 +211,9 @@ class BaseValue(ValueInternals):
         self.expect(isinstance(self.value, klass),
             "%(value)r %(should)s be of class %(name)s instead of %(value_name)s",
             name=klass.__name__, value_name=type(self.value).__name__)
+    
+    def type_of(self, klass):
+        return self.instance_of(klass)
         
     #@property
     def true(self):
