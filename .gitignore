@@ -1,3 +1,4 @@
 *.pyc
 /describe.egg-info/
 /dist/
+/.DS_Store
