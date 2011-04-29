@@ -109,7 +109,7 @@ args.ANYTHING accepts any arguments as valid, including no arguments::
   m.should_access.rjust(args.ANYTHING).and_return('anything works')
   m.rjust('foo', 'bar') # => 'anything works'
   
-args.ARG_ARG accepts any single argument::
+args.ANY_ARG accepts any single argument::
 
   from describe import args
   m.should_access.rjust(args.ANY_ARG).and_return(4)
