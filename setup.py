@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-__version__, __author__, __author_email__ = "0.1.1", "Jeff Hui", "contrib@jeffhui.net"
+__version__, __author__, __author_email__ = "0.2.0", "Jeff Hui", "contrib@jeffhui.net"
 
 setup(
     name='describe',
@@ -11,12 +11,13 @@ setup(
     author_email=__author_email__,
     url='http://github.com/jeffh/describe/',
     # The runner hasn't been extensively tested.
-    #install_requires=[
-    #    'nose',
-    #],
-    #entry_points = {
-    #    'console_scripts': ['describe = describe:main'],
-    #},
+    install_requires=[
+        'nose',
+    ],
+    entry_points = {
+        'nose.plugins.0.10': ['describe = describe:nose_plugin:SpecPlugin']
+        'console_scripts': ['describe = describe:main'],
+    },
     packages=find_packages(),
     license='MIT',
     classifiers=[
