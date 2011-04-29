@@ -22,10 +22,11 @@ import os, termstyle
 # sys.argv[0] and any arguments passed via -x prefix will be sent to this function as
 # it's arguments. The function should return logically True if the validation passed
 # and logicially False if it fails.
-#
-# This example simply runs nose.
+print_to_stdout = 1
 @runnable
 def execute_nose(*args):
     from describe.nose_plugin import SpecPlugin
     import nose
-    return nose.run(argv=list(args) + ['-s'], addplugins=[SpecPlugin()])
+    if print_to_stdout:
+        args = args + ('-s',)
+    return nose.run(argv=list(args), addplugins=[SpecPlugin()])
