@@ -16,6 +16,14 @@ class StrMock(Spec):
     def before(self):
         self.m = Mock()
         
+    def should_allow_hook_expectations(self):
+        self.m.should_access.__add__(self.m, 'bar').and_return('foobar')
+        Value(self.m + 'bar').should == 'foobar'
+        
+    def should_allow_sequence_hook_expectations(self):
+        self.m.should_access.__contains__(self.m, 'c').and_return(True)
+        Value(self.m).should.contain('c')
+        
     def should_allow_mock_verify_expectation(self):
         self.m.should_access.verify().and_return('bar')
         Value(self.m.mock).invoking.verify().should == 'bar'
@@ -40,6 +48,16 @@ class StrMock(Spec):
     def test_mock_invalid_args(self):
         self.m.should_access.rjust(5).and_return(' ' * 5)
         self.m.rjust(3)
+        
+class DescribeListMock(Spec):
+    def before(self):
+        self.m = Mock()
+    
+    def it_should_allow_setitem_hook(self):
+        self.m.should_access.__setitem__(self.m, 'foo', 'lol')
+        self.m.should_access.__getitem__(self.m, 'foo').and_return('lol')
+        self.m['foo'] = 'lol'
+        Value(self.m).get['foo'].should == 'lol'
 
 class DescribeBowlerMock(Spec):
     def before(self):

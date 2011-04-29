@@ -1,4 +1,5 @@
 from describe import Value
+import unittest
 
 def test_string_method_for_nonstring():
     v = Value(3)
@@ -28,3 +29,7 @@ def test_should_have_attr():
 def test_enumerator_foo():
     for val in Value.iterate([0,2,4]):
         val % 2 == 0
+        
+class BuiltinOverridesCauseNoExceptions(unittest.TestCase):
+    def test_abs(self):
+        abs(Value(-2)).should == 2
