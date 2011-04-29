@@ -68,7 +68,7 @@ the `voidspace mock library`__. Feel free to use it directly instead of this API
 describe.Mock supports a few operations:
 
  * Mock.should_access property - Allows you to set expectations of method calls and attribute accesses.
- * Mock.should_not_access - Allows you to set expections of attributes not getting accessed.
+ * Mock.should_not_access(attr_name) - Allows you to set expections of attributes not getting accessed.
  * Mock.verify() - Verifies all the expectations, throwing AssertionErrors if need be.
  * Mock.reset() - clears the access log, you should never really use this directly.
  
