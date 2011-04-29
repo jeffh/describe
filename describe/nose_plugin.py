@@ -21,7 +21,7 @@ class SpecSelector(nose.selector.Selector):
         parts = set(parts)
         if ext != '.py':
             return False
-        if base.startswith('spec_'):
+        if 'spec' in base or 'test' in base:
             return True
         for prefix in ('spec', 'specs', 'test', 'tests'):
             if prefix in parts:
@@ -38,7 +38,7 @@ class SpecSelector(nose.selector.Selector):
         return None
     
     def wantClass(self, cls):
-        return issubclass(cls, Spec) or cls.__name__.startswith('Describe') or \
+        return issubclass(cls, Spec) or cls.__name__.lower().startswith('describe') or \
             issubclass(cls, unittest.TestCase)
             
     def wantMethod(self, method):
