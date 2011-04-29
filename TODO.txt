@@ -1,4 +1,3 @@
  - MORE documentation!
  - Improve error outputs (like unittest's assertIn).
  - Refactor code (smaller is better!)
- - Create or test a the spec runner (do we need this?)
