@@ -1,7 +1,7 @@
 import re
 
 __ALL__ = ['ANYTHING', 'ANY_ARG', 'ARGS', 'KWARGS', 'an_instance_of', 'boolean', 'regexp',
-    'duck_type', 'includes_pair', 'filters']
+    'duck_type', 'includes_pair', 'filters', 'contains']
 
 class ArgFilter(object):
     def __init__(self, name):
@@ -59,10 +59,24 @@ def an_instance_of(the_type):
 boolean = an_instance_of(bool)
 regexp = an_instance_of(type(re.compile('')))
 
+def contains(item, *items):
+    items = tuple(map(str, (item,) + items))
+    @ArgFilter('contains')
+    def hk(obj):
+        for item in items:
+            if item not in obj:
+                return False
+        return True
+    hk.comment = ', '.join(keys)
+    return hk
+
 def includes_pair(key, value):
     @ArgFilter('includes_pair')
     def di(obj):
-        return hasattr(obj, 'get') and obj.get(key, False) == value
+        try:
+            return obj[key] == value
+        except (IndexError, TypeError, KeyError):
+            return hasattr(obj, 'get') and obj.get(key, False) == value
     di.comment = '{%r: %r}' % (key, value)
     return di
 
