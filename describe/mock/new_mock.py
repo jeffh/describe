@@ -103,13 +103,14 @@ class MockAttribute(object):
         return self
 
 class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOperatorsMixin, mixins.LogicalOperatorsMixin, mixins.SequenceMixin):
-    def __init__(self, klass=None, repository=repos.default):
+    def __init__(self, klass=None, repository=repos.default, strict=True):
         if repository:
             repository.register(self)
         if klass is not None:
             self.mock = mocker.MagicMock(spec=klass)
         else:
             self.mock = mocker.Mock()
+        self._strict = strict
         self._asserters = []
         self._exclude_list = []
         self._access_log = []
@@ -149,7 +150,7 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
     def verify(self, strict=True):
         for a in self._asserters:
             a()
-        if strict:
+        if strict and self._strict:
             exclude = set(self._exclude_list)
             for attr in self._access_log:
                 if attr in exclude:

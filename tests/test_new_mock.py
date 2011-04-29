@@ -2,15 +2,6 @@ from describe import Value, Mock
 from describe.mock.args_filter import *
 from describe.mock import repository
 from describe.spec import Spec, fails_verification
-import unittest
-from functools import wraps
-
-
-def should_fail_verification(func):
-    def decorated(self):
-        self.should_fail = func.__name__
-        return func(self)
-    return wraps(func)(decorated)
 
 class StrMock(Spec):
     def before(self):
@@ -40,14 +31,18 @@ class StrMock(Spec):
         self.m.should_not_access.upper()
         self.m.lower()
 
-    def test_mock_with_one_specific_arg(self):
+    def should_mock_with_one_specific_arg(self):
         self.m.should_access.rjust(5).and_return(' ' * 5)
         Value(self.m).invoking.rjust(5).should == '     '
     
     @fails_verification
-    def test_mock_invalid_args(self):
+    def should_mock_invalid_args(self):
         self.m.should_access.rjust(5).and_return(' ' * 5)
         self.m.rjust(3)
+        
+    def should_raise_error_on_add_numbers(self):
+        self.m.should_access.__add__(self.m, 3).and_raise(ValueError)
+        (Value(self.m) + 3).should.raise_error(ValueError)
         
 class DescribeListMock(Spec):
     def before(self):
@@ -78,4 +73,19 @@ class DescribeBowlerMock(Spec):
     def it_should_success_with_any_args(self):
         self.m.should_access.set_scores(ANYTHING)
         self.m.set_scores(5, 5, 7, 7, 10)
+
+class DescribeRelaxedMock(Spec):
+    def before(self):
+        self.m = Mock(strict=False)
+        
+    def it_should_not_raise_error_on_random_invocation(self):
+        self.m.foo()
     
+    def it_should_not_raise_error_on_random_invocations_with_certain_expectations(self):
+        self.m.should_access.upper().and_return('bar')
+        self.m.foo()
+        Value(self.m).invoking.upper().should == 'bar'
+    
+    @fails_verification
+    def it_should_raise_error_when_certain_expectations_are_not_met(self):
+        self.m.should_access.foo()
