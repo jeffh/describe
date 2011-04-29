@@ -1,0 +1,5 @@
+mock==0.7.0
+nose==1.0.0
+python-termstyle==0.1.9
+sniffer==0.2.2
+wsgiref==0.1.2
