@@ -1,11 +1,11 @@
 Describe
 ========
 
-A `Behavior Drive Development`_ framework inspired off of RSpec_. The reason of BDD over
+A `Behavior Driven Development`_ or BDD framework inspired off of RSpec_. The reason of BDD over
 TDD is out of scope of this project. But this framework is simply a way to try and
 encourage me to do more testing.
 
-.. _BDD: http://en.wikipedia.org/wiki/Behavior_Driven_Development
+.. _Behavior Driven Development: http://en.wikipedia.org/wiki/Behavior_Driven_Development
 .. _RSpec: http://rspec.info/
 
 Installation
@@ -63,7 +63,7 @@ Mocks
 
 Mocks are used to abstract out classes that are not being tested. They can customized to return
 specific results and logs all operates done to it for verification later on. The mock API wraps
-the `voidspace mock library`_. Feel free to use it directly instead of this API.
+the `voidspace mock library`__. Feel free to use it directly instead of this API.
 
 describe.Mock supports a few operations:
 
