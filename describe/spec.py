@@ -1,5 +1,5 @@
 import unittest
-from describe.mock import repository
+from describe import repository
 from describe import Mock
 from functools import wraps
 
