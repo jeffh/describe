@@ -114,13 +114,13 @@ args.ARG_ARG accepts any single argument::
 
 Other special args include:
 
- * arg.ARGS  - any non-keyword arguments
- * arg.KWARGS - any keyworded arguments
- * arg.an_instance_of(type) - any argument whos value matches the given type
- * arg.regexp - alias for arg.an_instance_of(type(re.compile(''))) for a regular expression
- * arg.includes_pair(key, value) - any argument who has a key and associated value.
- * arg.contains(item, *items) - any keys or items in the given list or dictionary.
- * arg.duck_type(*attributes) - any object that has all of the given attributes
+* arg.ARGS  - any non-keyword arguments
+* arg.KWARGS - any keyworded arguments
+* arg.an_instance_of(type) - any argument whos value matches the given type
+* arg.regexp - alias for arg.an_instance_of(type(re.compile(''))) for a regular expression
+* arg.includes_pair(key, value) - any argument who has a key and associated value.
+* arg.contains(item, *items) - any keys or items in the given list or dictionary.
+* arg.duck_type(*attributes) - any object that has all of the given attributes
  
 You can also set expectations for getter properties::
 
@@ -151,10 +151,5 @@ The entire purpose of behavior driven development, is to remap the testing-based
 more specification driven ones. The Spec class is an alternative to unittest.TestCase, but you'll
 need nose_ / sniffer_ to reap all the benefits.
 
-.. _nose:
-.. _sniffer:
-
-But this is more code!
-======================
-
-Yes, but it's more readable (your opinion may vary).
+.. _nose: http://somethingaboutorange.com/mrl/projects/nose/1.0.0/
+.. _sniffer: https://github.com/jeffh/sniffer
