@@ -118,19 +118,20 @@ class Mock(object):
     
     @property
     def should_not_access(self):
-        return FunctionName(self, attribute='add_function_to_not_access')
+        return FunctionName(self, attribute='__add_function_to_not_access')
         
-    def add_function_to_not_access(self, func):
+    def __add_function_to_not_access(self, func):
         self._exclude_list.append(func.name)
         
-    def verify(self):
+    def verify(self, strict=True):
         for a in self._asserters:
             a()
-        exclude = set(self._exclude_list)
-        for attr in self._access_log:
-            if attr in exclude:
-                msg = "Mock expected that %(name)r would not be accessed." % {'name': attr}
-                raise AssertionError, msg
+        if strict:
+            exclude = set(self._exclude_list)
+            for attr in self._access_log:
+                if attr in exclude:
+                    msg = "Mock expected that %(name)r would not be accessed." % {'name': attr}
+                    raise AssertionError, msg
             
     def reset(self):
         self._access_log = []

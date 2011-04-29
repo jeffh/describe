@@ -23,13 +23,12 @@ class Repository(object):
     def clear(self):
         self.mocks = []
     
-    def verify(self, cleanup=True):
+    def verify(self, strict=True):
         try:
             for m in self.mocks:
-                m.verify()
+                m.verify(strict)
         except:
-            if cleanup:
-                self.clear()
+            self.clear()
             raise
         return self
 
