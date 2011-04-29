@@ -140,6 +140,7 @@ class PropertyMixin(object):
     def get(self):
         "Alias to invoke, but implies reading an attribute (instead of a method)."
         return self.invoke
+    getting = get
     # too unpredicable, and difficult to debug.
     #def __getattr__(self, key):
     #    print self
