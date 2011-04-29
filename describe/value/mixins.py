@@ -1,6 +1,7 @@
 from properties import Properties
 from decorators import VerifyDecorator, DeferredDecorator
 from ..tracebacks import get_current_stack, get_stack
+from .. import mixins as mix
 import re
 try:
     set
@@ -9,70 +10,36 @@ except ValueError:
 
 __ALL__ = ['OperatorsMixin', 'BuiltinFunctionsMixin', 'PropertyMixin', 'InvokerMixin', 'NotMixin',
     'EnumerableMixin']
-
-class OperatorsMixin(object):
+    
+class OperatorsMixin(mix.OperatorsMixin, mix.ReverseOperatorsMixin, mix.InplaceOperatorsMixin):
     """All operators return new lazy Value object after operating on the wrapped value object."""
-    def __add__(self, other):       return self._new_value(lambda: self.value + other,  lazy=True)
-    def __radd__(self, other):      return self._new_value(lambda: other + self.value,  lazy=True)
-    def __iadd__(self, other):      self.value += other; return self
-    def __sub__(self, other):       return self._new_value(lambda: self.value - other,  lazy=True)
-    def __rsub__(self, other):       return self._new_value(lambda: other - self.value, lazy=True)
-    def __isub__(self, other):      self.value -= other; return self
-    def __mul__(self, other):       return self._new_value(lambda: self.value * other,  lazy=True)
-    def __rmul__(self, other):      return self._new_value(lambda: other * self.value,  lazy=True)
-    def __imul__(self, other):      self.value *= other; return self
-    def __div__(self, other):       return self._new_value(lambda: self.value / other,  lazy=True)
-    def __rdiv__(self, other):      return self._new_value(lambda: other / self.value,  lazy=True)
-    def __idiv__(self, other):      self.value /= other; return self
-    def __floordiv__(self, other):  return self._new_value(lambda: self.value // other, lazy=True)
-    def __rfloordiv__(self, other): return self._new_value(lambda: other // self.value, lazy=True)
-    def __ifloordiv__(self, other): self.value //= other; return self
-    def __mod__(self, other):       return self._new_value(lambda: self.value % other,  lazy=True)
-    def __rmod__(self, other):      return self._new_value(lambda: other % self.value,  lazy=True)
-    def __imod__(self, other):      self.value %= other; return self
-    def __pow__(self, other):       return self._new_value(lambda: self.value ** other, lazy=True)
-    def __rpow__(self, other):      return self._new_value(lambda: other ** self.value, lazy=True)
-    def __ipow__(self, other):      self.value **= other; return self
-    def __lshift__(self, other):    return self._new_value(lambda: self.value << other, lazy=True)
-    def __rlshift__(self, other):   return self._new_value(lambda: other << self.value, lazy=True)
-    def __ilshift__(self, other):   self.value <<= other; return self
-    def __rshift__(self, other):    return self._new_value(lambda: self.value >> other, lazy=True)
-    def __rrshift__(self, other):   return self._new_value(lambda: other >> self.value, lazy=True)
-    def __irshift__(self, other):   self.value >>= other; return self
-    def __and__(self, other):       return self._new_value(lambda: self.value & other,  lazy=True)
-    def __rand__(self, other):      return self._new_value(lambda: other & self.value,  lazy=True)
-    def __iand__(self, other):      self.value &= other; return self
-    def __xor__(self, other):       return self._new_value(lambda: self.value ^ other,  lazy=True)
-    def __rxor__(self, other):      return self._new_value(lambda: other ^ self.value,  lazy=True)
-    def __ixor__(self, other):      self.value ^= other; return self
-    def __or__(self, other):        return self._new_value(lambda: self.value | other,  lazy=True)
-    def __ror__(self, other):       return self._new_value(lambda: other | self.value,  lazy=True)
-    def __ior__(self, other):       self.value |= other; return self
-    def __neg__(self):              return self._new_value(lambda: -self.value,         lazy=True)
-    def __pos__(self):              return self._new_value(lambda: +self.value,         lazy=True)
-    def __invert__(self):           return self._new_value(lambda: ~self.value,         lazy=True)
-    def __str__(self):              return str(self.value)
-    def __unicode__(self):          return unicode(self.value)
+    def _lazy_value(self, a, b, func, single_arg=False):
+        lamb = lambda: func(a.value,b)
+        if single_arg:
+            lamb = lambda: func(a.value)
+        return self._new_value(lamb, lazy=True)
+    ReversedOperatorProcessor = OperatorProcessor = _lazy_value
+    
+    def _inplace_lazy_value(self, a, b, func):
+        a.value = func(a.value, b)
+        return a
+    InplaceOperatorProcessor = _inplace_lazy_value
 
     def contains(self, substring):
         self.expect(substring in self.value,
             "%(substr)r %(should)s be a substring of %(value)r",
             substr=substring)
 
-class BuiltinFunctionsMixin(object):
+
+class BuiltinFunctionsMixin(mix.BuiltinFunctionsMixin):
     """All builtin hooks return a new lazy value object when possible.
     
     If cannot return a new object (due to constraints of the hook, they are actively eval'ed)
     """
-    def __abs__(self):                    return self._new_value(lambda: abs(self.value),     lazy=True)
-    def __complex__(self):                return self._new_value(lambda: complex(self.value), lazy=True)
-    def __int__(self):                    return self._new_value(lambda: int(self.value),     lazy=True)
-    def __long__(self):                   return self._new_value(lambda: long(self.value),    lazy=True)
-    def __float__(self):                  return self._new_value(lambda: float(self.value),   lazy=True)
-    def __oct__(self):                    return self._new_value(lambda: oct(self.value),     lazy=True)
-    def __hex__(self):                    return self._new_value(lambda: hex(self.value),     lazy=True)
-    def __index__(self):                  return self.value.__index__()
-    def __coerce__(self, other):          return self.value.__coerce__(other)
+    def _builtin_function_processor(self, obj, typefn):
+        f = lambda: typefn(obj.value)
+        return self._new_value(f, lazy=True)
+    BuiltinFunctionProcessor = _builtin_function_processor
     # TODO: figure out of wrapping these values are acceptable
     # or some value, based operation is acceptable
     def __enter__(self):                  return self.value.__enter__()
