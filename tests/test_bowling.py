@@ -9,7 +9,14 @@ class TestBowling(unittest.TestCase):
         def hit():
             b.hit(6)
         hit.should.change(b, 'hits').by(1)
-    
+        
+    def test_change_value_increment(self):    
+        s = {'a': 0}
+        @Value
+        def increment():
+            s['a'] += 1
+        increment.should.change(s, key='a').by(1)
+        
     def test_return_value(self):
         b = Bowling()
         Value(b).invoke.foobar(9).return_value.should == 9
@@ -62,3 +69,7 @@ class TestBowling(unittest.TestCase):
         @b.should.satisfy
         def starting_score_should_be_zero(b):
             return b.score == 0
+
+    def test_satisfy_lambda(self):
+        b = Value(Bowling())
+        b.should.satisfy(lambda b: b.score == 0)

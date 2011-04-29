@@ -3,12 +3,14 @@ from mixins import *
 
 __ALL__ = ['Value']
 
-class SharedValue(BuiltinFunctionsMixin, OperatorsMixin, PropertyMixin, StringMixin,
-    InvokerMixin, BaseValue):
+class SharedValue(BuiltinFunctionsMixin, OperatorsMixin, PropertyMixin,
+    StringMixin, EnumerableMixin, InvokerMixin, BaseValue):
     pass
 
 class NotValue(NotMixin, SharedValue):
+    """The concrete implementation of the NotValue class."""
     def _new_plain_value(self, val):
+        # the ugly hack to return the original Value class defined below
         return globals()['Value'](val)
 
 # Public API

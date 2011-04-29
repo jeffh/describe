@@ -20,7 +20,7 @@ def test_operators():
     (Value(5) + 7).should == 12
     Value(10).should.be <= 60 # be is optional
     Value(100).should > 20
-    Value(50).should 
+    Value(50).should != 51
     
 def test_dict():
     Value({}).should.be.instance_of(dict)
