@@ -13,6 +13,7 @@ setup(
     # The runner hasn't been extensively tested.
     install_requires=[
         'nose',
+        'mock'
     ],
     entry_points = {
         'nose.plugins.0.10': ['describe = describe:nose_plugin:SpecPlugin']
