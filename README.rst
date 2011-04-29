@@ -1,8 +1,8 @@
 Describe
 ========
 
-An experimental BDD_ styled framework inspired off of RSpec_. The reason of BDD over
-TDD is out of scope of this article. But this framework is simply a way to try and
+A `Behavior Drive Development`_ framework inspired off of RSpec_. The reason of BDD over
+TDD is out of scope of this project. But this framework is simply a way to try and
 encourage me to do more testing.
 
 .. _BDD: http://en.wikipedia.org/wiki/Behavior_Driven_Development
@@ -14,6 +14,11 @@ Installation
 To install, use pip or easy_install::
 
   pip install describe
+  
+Then you can import it::
+
+  from describe import Spec, Value, Mock # classes
+  from describe import arg, repository   # submodules
 
 Usage
 =====
@@ -21,8 +26,7 @@ Usage
 Quickstart
 ------
 
-Then you can import the library for use in unittest or nose. Currently there is only
-one feature, the Value object::
+Then you can import the library for use in unittest or nose. The core feature is the Value object::
 
   from describe import Value
 

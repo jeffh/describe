@@ -1,3 +1,0 @@
- - MORE documentation!
- - Improve error outputs (like unittest's assertIn).
- - Refactor code (smaller is better!)
