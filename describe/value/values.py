@@ -141,7 +141,7 @@ class BaseValue(ValueInternals):
         self.expect(bool(self.value), "%(value)r %(should)s logically True.")
     #@property
     def false(self):
-        self.expect(not bool(self.value), "%(value)r %(should)s logically False.")
+        self.expect(not self.value, "%(value)r %(should)s logically False.")
     
     def __eq__(self, other):
         self.expect(self.value == other, "%(value)r %(should)s == %(other)r.", other=other)
