@@ -67,10 +67,10 @@ the `voidspace mock library`_. Feel free to use it directly instead of this API.
 
 describe.Mock supports a few operations:
 
- * Mock.should_access property - Allows you to set expectations of method calls and attribute accesses.
- * Mock.should_not_access(attr_name) - Allows you to set expections of attributes not getting accessed.
- * Mock.verify() - Verifies all the expectations, throwing AssertionErrors if need be.
- * Mock.reset() - clears the access log, you should never really use this directly.
+* ``Mock.should_access property`` - Allows you to set expectations of method calls and attribute accesses.
+* ``Mock.should_not_access(attr_name)`` - Allows you to set expections of attributes not getting accessed.
+* ``Mock.verify()`` - Verifies all the expectations, throwing AssertionErrors if need be.
+* ``Mock.reset()`` - clears the access log, you should never really use this directly.
  
 All other attributes get directed to the `voidspace mock object`_. A basic example::
 
@@ -118,13 +118,13 @@ args.ANY_ARG accepts any single argument::
 
 Other special args include:
 
-* arg.ARGS  - any non-keyword arguments
-* arg.KWARGS - any keyworded arguments
-* arg.an_instance_of(type) - any argument whos value matches the given type
-* arg.regexp - alias for arg.an_instance_of(type(re.compile(''))) for a regular expression
-* arg.includes_pair(key, value) - any argument who has a key and associated value.
-* arg.contains(item, *items) - any keys or items in the given list or dictionary.
-* arg.duck_type(*attributes) - any object that has all of the given attributes
+* ``arg.ARGS``  - any non-keyword arguments
+* ``arg.KWARGS`` - any keyworded arguments
+* ``arg.an_instance_of(type)`` - any argument whos value matches the given type
+* ``arg.regexp`` - alias for arg.an_instance_of(type(re.compile(''))) for a regular expression type.
+* ``arg.includes_pair(key, value)`` - any argument who has a key and associated value.
+* ``arg.contains(item, *items)`` - any keys or items in the given list or dictionary.
+* ``arg.duck_type(*attributes)`` - any object that has all of the given attributes
  
 You can also set expectations for getter properties::
 
