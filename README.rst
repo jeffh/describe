@@ -62,7 +62,7 @@ Mocks
 -----
 
 Mocks are used to abstract out classes that are not being tested. They can customized to return
-specific results and logs all operates done to it for verification later on. The mock API wraps
+specific results and logs all operations done to it for verification later on. The mock API wraps
 the `voidspace mock library`_. Feel free to use it directly instead of this API.
 
 describe.Mock supports a few operations:
