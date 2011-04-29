@@ -16,6 +16,10 @@ class StrMock(Spec):
     def before(self):
         self.m = Mock()
         
+    def should_allow_mock_verify_expectation(self):
+        self.m.should_access.verify().and_return('bar')
+        Value(self.m.mock).invoking.verify().should == 'bar'
+        
     @fails_verification
     def should_mock_verification(self):
         self.m.should_access.upper().and_return('FOO')
