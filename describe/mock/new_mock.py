@@ -1,6 +1,6 @@
 import repository as repos
 import mock as mocker
-from .. import Value
+from .. import Value, mixins
 from utils import FunctionName, Function
 from args_matcher import ArgList
 from ..frozen_dict import FrozenDict
@@ -23,7 +23,7 @@ class MockAttribute(object):
         
     def funcdef(self, value):
         self._funcdef = value
-        setattr(self.mock, self._funcdef.name, self)
+        setattr(self.mock.mock, self._funcdef.name, self)
         if self._funcdef.is_property:
             self.as_property
         key = self._freeze(self._funcdef.args, self._funcdef.kwargs)
@@ -40,6 +40,10 @@ class MockAttribute(object):
         return ArgList(tuple(args), FrozenDict(kwargs))
         
     def __call__(self, *args, **kwargs):
+        # special case with __hooks__: replace self.mock.mock with self.mock
+        if self._funcdef.name.startswith('__') and self._funcdef.name.endswith('__'):
+            if args[0] == self.mock.mock:
+                args = (self.mock,) + args[1:]
         al = self._freeze(args, kwargs)
         try:
             result = self._return_list[al].pop()
@@ -98,7 +102,7 @@ class MockAttribute(object):
         setattr(self.mock.__class__, self._funcdef.name, property(lambda s: self()))
         return self
 
-class Mock(object):
+class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOperatorsMixin, mixins.LogicalOperatorsMixin, mixins.SequenceMixin):
     def __init__(self, klass=None, repository=repos.default):
         if repository:
             repository.register(self)
@@ -110,17 +114,36 @@ class Mock(object):
         self._exclude_list = []
         self._access_log = []
         
+    # === override the default processors for the mixins to pass the work to the mock object.
+    # For some strange reason, __getattr__() doesn't pick these hooks up.
+    def _operator_to_mock(self, a, b, op, single_arg=False):
+        if single_arg:
+            return op(a.mock)
+        return op(a.mock, b)
+    LogicalOperatorProcessor = OperatorProcessor = ReverseOperatorProcessor = _operator_to_mock
+    
+    def _inplace_operator_to_mock(self, a, b, op):
+        a.mock = op(a.mock, b)
+        return a
+    InplaceOperatorProcessor = _inplace_operator_to_mock
+    
+    def _seq_processor(self, a, args, op):
+        return op(a.mock, *args)
+    SequenceProcessor = _seq_processor
+    
+    # === end overrides
+    
     @property
     def should_access(self):
-        ma = MockAttribute(self.mock)
+        ma = MockAttribute(self)
         self._asserters.append(ma.verify)
         return FunctionName(ma, attribute='funcdef')
     
     @property
     def should_not_access(self):
-        return FunctionName(self, attribute='__add_function_to_not_access')
+        return FunctionName(self, attribute='_add_function_to_not_access')
         
-    def __add_function_to_not_access(self, func):
+    def _add_function_to_not_access(self, func):
         self._exclude_list.append(func.name)
         
     def verify(self, strict=True):
