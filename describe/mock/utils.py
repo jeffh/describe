@@ -17,8 +17,8 @@ class Function(tuple):
             'prop': 'property:' if self.is_property else '',
             'name': self.name,
             'comma': ', ' if len(self.args) > 0 and len(self.kwargs) > 0 else '',
-            'args': ', '.join(map(str, self.args)),
-            'kwargs': ', '.join("%s=%s" % (k,v) for k,v in self.kwargs.iteritems()),
+            'args': ', '.join(map(repr, self.args)),
+            'kwargs': ', '.join("%r=%r" % (k,v) for k,v in self.kwargs.iteritems()),
         }
 
 class FunctionArgs(object):
