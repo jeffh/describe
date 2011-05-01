@@ -1,7 +1,9 @@
+from ..frozen_dict import FrozenDict
+from args_matcher import ArgList
 
 class Function(tuple):
     def __init__(self, (name, args, kwargs, is_property)):
-        super(Function, self).__init__((name, args, kwargs, is_property))
+        super(Function, self).__init__((name, tuple(args), FrozenDict(kwargs), is_property))
     
     @property
     def name(self): return self[0]
@@ -11,6 +13,13 @@ class Function(tuple):
     def kwargs(self): return self[2]
     @property
     def is_property(self): return self[3]
+    
+    def with_args(self, args, kwargs):
+        return self.__class__(self.name, args, kwargs, self.is_property)
+        
+    @property
+    def arglist(self):
+        return ArgList(self.args, self.kwargs)
     
     def __str__(self):
         return "%(prop)s%(name)s(%(args)s%(comma)s%(kwargs)s)" % {
