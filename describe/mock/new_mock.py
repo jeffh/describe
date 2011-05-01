@@ -265,10 +265,10 @@ class OrderingGroup(object):
         return True
     
 class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOperatorsMixin, mixins.LogicalOperatorsMixin, mixins.SequenceMixin):
-    def __init__(self, klass=None, repository=repos.default, strict=True):
+    def __init__(self, klass=None, repository=repos.default, strict=True, mock_class=mocker.Mock):
         if repository:
             repository.register(self)
-        self.mock = mocker.MagicMock(spec=klass)
+        self.mock = mock_class(spec=klass)
         self._strict = strict
         self._order_group = OrderingGroup()
         self._validators = [self._order_group.verify]
