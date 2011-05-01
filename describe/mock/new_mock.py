@@ -111,7 +111,7 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
         else:
             self.mock = mocker.Mock()
         self._strict = strict
-        self._asserters = []
+        self._validators = [self._order_group.verify]
         self._exclude_list = []
         self._access_log = []
         
@@ -148,8 +148,8 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
         self._exclude_list.append(func.name)
         
     def verify(self, strict=True):
-        for a in self._asserters:
-            a()
+        for v in self._validators:
+            v()
         if strict and self._strict:
             exclude = set(self._exclude_list)
             for attr in self._access_log:
