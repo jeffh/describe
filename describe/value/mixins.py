@@ -25,12 +25,6 @@ class OperatorsMixin(mix.OperatorsMixin, mix.ReverseOperatorsMixin, mix.InplaceO
         return a
     InplaceOperatorProcessor = _inplace_lazy_value
 
-    def contains(self, substring):
-        self.expect(substring in self.value,
-            "%(substr)r %(should)s be a substring of %(value)r",
-            substr=substring)
-
-
 class BuiltinFunctionsMixin(mix.BuiltinFunctionsMixin):
     """All builtin hooks return a new lazy value object when possible.
     
@@ -179,4 +173,4 @@ class NotMixin(object):
     def expect(self, assertion, message=None, **kwargs):    
         if 'should' not in kwargs:
             kwargs['should'] = 'should not'
-        super(NotMixin, self).expect(not assertion, message, **kwargs)
+        return super(NotMixin, self).expect(not assertion, message, **kwargs)
