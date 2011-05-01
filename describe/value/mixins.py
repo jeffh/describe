@@ -48,7 +48,10 @@ class StringMixin(object):
             method=prev_stack.name, actual=type(self.value).__name__)
     
     def match(self, regex):
-        "Performs a regular expression match expectation."
+        """Performs a regular expression match expectation.
+        The wrapped value is expected to be a string.
+        
+        """
         self.requires_string()
         self.expect(re.search(regex, self.value),
             "%(regex)r.search(%(value)r) %(should)s return a match.",
@@ -68,15 +71,46 @@ class EnumerableMixin(object):
                 val=self.value)
                 
     def iter_as_values(self):
+        """Converts each element of the wrapped value as a Value object.
+        
+        Example::
+        
+            for i,v in enumerate(Value([1,2,3]).iter_as_values()):
+                v.should == i
+                
+        .. seealso:: :meth:`~describe.value.Value.iterate`
+        
+        """
         self.requires_enumerable()
         return iter(map(self._new_value, self.value))
         
     def enumerable(self):
-        "Asserts that the wrapped value can be enumerated using iter()."
+        """Expects that the wrapped value can be enumerated using iter().
+        
+        Example::
+        
+            Value([1,2,3]).should.be.enumerable
+        
+        """
         self.expect(iter(self.value),
             "iter(%(value)r) %(should)s be supported.")
             
     def have_equal_elements_to(self, other):
+        """Expects that the given elements appear in the same order as the
+        wrapped value.
+        
+        :param other: The in-order elements to compare to the wrapped values.
+        :type other: iter
+        
+        This is identical to doing::
+        
+            tuple(wrapped_value) == tuple(other)
+            
+        Example::
+        
+            Value([1,2,3]).should.have_equals_elements_to((1,2,3))
+        
+        """
         self.requires_enumerable()
         self.expect(tuple(self.value) == tuple(other),
             "tuple(%(value)r) should have equal elements to tuple(%(other)r).",
@@ -84,6 +118,11 @@ class EnumerableMixin(object):
         
     @classmethod
     def iterate(cls, enumerables):
+        """Alias to Value(enumerables).iter_as_values().
+        
+        .. seealso:: :meth:`~describe.value.Value.iter_as_values`
+        
+        """
         return cls(enumerables).iter_as_values()
         
 class PropertyMixin(object):
