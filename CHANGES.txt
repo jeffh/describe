@@ -1,9 +1,14 @@
 Changelog
 ==========
 
-0.1.2
+bleeding
 -----
- - Updated to allow __getitem__ access: Value({'key':'val'}).get['key'].should == 'val'
+ - Added Mocking API
+ - Added a bunch of tests
+ - Added support for arguments filters
+ - Added nose plugin to load Spec classes
+ - Updated to allow __getitem__ access: my_value.get['key'].should == 'value'
+ - Major code refactoring / cleaning
 
 0.1.1
 ------
