@@ -29,4 +29,4 @@ def execute_nose(*args):
     import nose
     if print_to_stdout:
         args = args + ('-s',)
-    return nose.run(argv=list(args), addplugins=[SpecPlugin()])
+    return nose.run(argv=list(args + ('-x',)), addplugins=[SpecPlugin()])
