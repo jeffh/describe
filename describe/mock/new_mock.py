@@ -4,6 +4,7 @@ from .. import Value, mixins
 from utils import FunctionName, Function
 from args_matcher import ArgList
 from ..frozen_dict import FrozenDict
+import operator
 
 class ExpectationDelegator(object):
     def __init__(self):
@@ -207,14 +208,66 @@ class AttributeExpectation(object):
         # TODO: inject some property handling methods to work accross multiple mock objects
         setattr(self._mock.__class__, self._funcdef.name, property(lambda s: self()))
         return self
+        
+    @property
+    def ordered(self):
+        self._order_group.append(self)
 
+class OrderingGroup(object):
+    def __init__(self, raise_immediately=False):
+        self.raise_immediately = raise_immediately
+        # the max element that was correct
+        self.correct_index = 0
+        self._objs = []
+        self._first_error = None
+    
+    def append(self, obj):
+        self._objs.append(obj)
+        
+    def index(self, index, start=None):
+        return self._objs.index(index, start)
+        
+    def __getitem__(self, index):
+        return self._objs[index]
+    
+    def __len__(self):
+        return len(self._objs)
+        
+    def verify(self):
+        error, self._first_error = self._first_error, None
+        if error:
+            raise error
+        
+    def verify_position(self, expectation):
+        if len(self) == 0:
+            return True
+        try:
+            i = self.index(expectation, self.correct_index)
+        except ValueError:
+            return True
+        j = self.correct_index
+        self.correct_index = i + 1
+        if i != j:    
+            message = "%(actual)r was accessed, but expected %(actual)r to be accessed after %(expected)r (%(index)d attribute access%(es)s later)." % {
+                'actual': expectation,
+                'expected': self[0],
+                'index': i,
+                'es': 'es' if i != 1 else '',
+            }
+            if self.raise_immediately:
+                raise AssertionError, message
+            else:
+                self._first_error = AssertionError(message)
+            return False
+        return True
+    
 class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOperatorsMixin, mixins.LogicalOperatorsMixin, mixins.SequenceMixin):
     def __init__(self, klass=None, repository=repos.default, strict=True):
         if repository:
             repository.register(self)
         self.mock = mocker.MagicMock(spec=klass)
         self._strict = strict
-        self._order_group = []
+        self._order_group = OrderingGroup()
         self._validators = [self._order_group.verify]
         self._exclude_list = []
         self._access_log = []
@@ -241,7 +294,9 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
     
     @property
     def should_access(self):
-        return FunctionName(ma, attribute='funcdef')
+        ma = AttributeExpectation(self, self._order_group)#MockAttribute(self)
+        self._validators.append(ma.verify)
+        return FunctionName(ma, attribute='set_funcdef')
     
     @property
     def should_not_access(self):
