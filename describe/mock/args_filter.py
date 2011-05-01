@@ -70,14 +70,18 @@ def contains(item, *items):
     hk.comment = ', '.join(keys)
     return hk
 
-def includes_pair(key, value):
-    @ArgFilter('includes_pair')
+def dict_includes(dict):
+    @ArgFilter('dict_includes')
     def di(obj):
-        try:
-            return obj[key] == value
-        except (IndexError, TypeError, KeyError):
-            return hasattr(obj, 'get') and obj.get(key, False) == value
-    di.comment = '{%r: %r}' % (key, value)
+        for key, val in dict.iteritems():
+            try:
+                if obj[key] != val:
+                    return False
+            except (IndexError, TypeError, KeyError):
+                if not (hasattr(obj, 'get') and obj.get(key, False) == val):
+                    return False
+        return True
+    di.comment = '%r' % (dict,)
     return di
 
 def duck_type(*attributes):

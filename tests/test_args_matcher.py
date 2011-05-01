@@ -115,7 +115,7 @@ class InstanceOfArgListShould(unittest.TestCase):
 
 class IncludesPairArgListShould(unittest.TestCase):
     def setUp(self):
-        self.al = Value(ArgList((includes_pair('foo', 'bar'),)))
+        self.al = Value(ArgList((dict_includes({'foo': 'bar'}),)))
     
     def test_not_match_nothing(self):
         self.al.should_not == ArgList()
