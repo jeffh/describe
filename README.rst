@@ -24,7 +24,7 @@ Usage
 =====
 
 Quickstart
-------
+-----------
 
 Then you can import the library for use in unittest or nose. The core feature is the Value object::
 
@@ -47,7 +47,7 @@ examples until I get proper documentation::
 
   # self.assertFalse(False)
   Value(False).should.be.false()
-
+
   # self.assertTrue(isinstance((), tuple))
   Value(()).should.be.instance_of(tuple)
 
@@ -70,7 +70,7 @@ describe.Mock supports a few operations:
 * ``Mock.should_access property`` - Allows you to set expectations of method calls and attribute accesses.
 * ``Mock.should_not_access(attr_name)`` - Allows you to set expections of attributes not getting accessed.
 * ``Mock.verify()`` - Verifies all the expectations, throwing AssertionErrors if need be.
-* ``Mock.reset()`` - clears the access log, you should never really use this directly.
+* ``Mock.reset_mock()`` - clears the access log, you should never really use this directly.
  
 All other attributes get directed to the `voidspace mock object`_. A basic example::
 
