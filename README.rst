@@ -47,7 +47,7 @@ examples until I get proper documentation::
 
   # self.assertFalse(False)
   Value(False).should.be.false()
-
+
   # self.assertTrue(isinstance((), tuple))
   Value(()).should.be.instance_of(tuple)
 
