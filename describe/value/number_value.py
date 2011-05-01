@@ -14,20 +14,9 @@ class NumberValue(object):
                 (self.format+" %(should)s == %(amount)s"), amount=amount)
         return self
     
-    @property
-    def items(self):
-        return None
-    
-    @property
-    def item(self):
-        return None
-
-    @property
-    def elements(self):
-        return None
-    
-    @property
-    def element(self):
+    # this allows us to to postfix: 'value.should.have(5).items'
+    # at some point, we should be smarter about this.
+    def __getattr__(self, name):
         return None
 
     def at_least(self, amount):
