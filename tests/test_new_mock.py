@@ -73,6 +73,38 @@ class DescribeBowlerMock(Spec):
     def it_should_success_with_any_args(self):
         self.m.should_access.set_scores(ANYTHING)
         self.m.set_scores(5, 5, 7, 7, 10)
+        
+    @fails_verification
+    def it_should_fail_when_requiring_bowl_to_be_called_10_times(self):
+        self.m.should_access.bowl(ANY_ARG).and_return(70).exactly(10).times
+        self.m.bowl(5)
+        
+    def it_should_require_bowl_to_be_called_10_times(self):
+        self.m.should_access.bowl(ANY_ARG).and_return(70).exactly(10).times
+        for i in range(10):
+            self.m.bowl(i)
+    
+    def it_should_require_bowl_to_be_called_at_least_5_times(self):
+        self.m.should_access.bowl(ANY_ARG).and_return(70).at_least(10).times
+        for i in range(10):
+            self.m.bowl(i)
+    
+    @fails_verification
+    def it_should_fail_when_requiring_bowl_to_be_called_at_least_5_times(self):
+        self.m.should_access.bowl(ANY_ARG).and_return(70).at_least(10).times
+        for i in range(3):
+            self.m.bowl(i)
+    
+    def it_should_require_bowl_to_be_called_at_most_8_times(self):
+        self.m.should_access.bowl(ANY_ARG).and_return(70).at_most(8).times
+        for i in range(7):
+            self.m.bowl(i)
+    
+    @fails_verification
+    def it_should_fail_when_requiring_bowl_to_be_called_at_most_8_times(self):
+        self.m.should_access.bowl(ANY_ARG).and_return(70).at_most(8).times
+        for i in range(10):
+            self.m.bowl(i)
 
 class DescribeRelaxedMock(Spec):
     def before(self):
