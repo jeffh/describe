@@ -5,101 +5,207 @@ from utils import FunctionName, Function
 from args_matcher import ArgList
 from ..frozen_dict import FrozenDict
 
-class MockAttribute(object):
-    def __init__(self, mock):
-        self.mock = mock
-        self._validators = [self._verify_allreturns]
-        self._funcdef = None
-        self._return_list = {}
-        self._extra_args_recieved = []
+class ExpectationDelegator(object):
+    def __init__(self):
+        self._expects = []
+    
+    def register(self, expectation):
+        self._expects.append(expectation)
         
-    def __repr__(self):
-        return "<MockAttribute:0x%(id)x, %(funcdef)r, %(return)r on %(mock)r>" % {
-            'id': id(self),
-            'funcdef': self._funcdef,
-            'return': self._return_list,
-            'mock': self.mock,
-        }
+    def reset(self):
+        self._expects = []
         
-    def funcdef(self, value):
+    def __call__(self, *args, **kwargs):
+        al = ArgList(args, kwargs)
+        for el in self._expects:
+            if el.can_handle_arglist(al):
+                return el(*args, **kwargs)
+
+def operator_any(a, b):
+    return True
+
+class AttributeExpectation(object):
+    def __init__(self, mock, order_group, expected_access_count=1):
+        self._mock = mock
+        self._order_group = order_group
+        self._actual_access_count = 0
+        self._expected_access_count = expected_access_count
+        self._validators = []
+        self._values_to_yield = []
+        self._args_recieved = []
+        self._values_yielded = []
+        self._funcdef = None # this will get set shortly after construction
+        self._current_access_count_expectation = None
+        self._called_max_times = lambda: False
+        # enforce that an expectation expects at least being called once
+        self.at_least('once') # mutable operations
+        
+    def can_handle_arglist(self, arglist):
+        """This is used internally, you may or may not use this.
+        
+        Returns True if this expectation object can handle/process the given arglist.
+        """
+        return self._funcdef.arglist == arglist and not self._called_max_times()
+        
+    def set_funcdef(self, value):
+        """Internal use. Do not call manually.
+        
+        This is called by the FunctionName (really FunctionArgs object) which gives us a Function
+        object.
+        """
         self._funcdef = value
-        setattr(self.mock.mock, self._funcdef.name, self)
+        delegator = getattr(self._mock.mock, self._funcdef.name, None) # mock will already return something
+        # here is where the magic occurs: we assign the given attribute of the mock to a Delegator
+        # and register ourselves to it.
+        if delegator is None or getattr(delegator, 'call_count', None) == 0:
+            delegator = ExpectationDelegator()
+            setattr(self._mock.mock, self._funcdef.name, delegator)
+            self._mock.mock.side_effect = delegator
+            self._mock._reset_hook.append(delegator.reset)
+        delegator.register(self)
         if self._funcdef.is_property:
             self.as_property
-        key = self._freeze(self._funcdef.args, self._funcdef.kwargs)
-        if key not in self._return_list:
-            self._return_list[key] = []
-        self._return_list[key].append(None)
+    
+    def _verify_consumed_all(self):
+        """Verification function to check if all values were consumed."""
+        message = "Not all specified return values were used."
+        assert len(self._values_to_yield) == 0, message
+        
+    def and_return(self, value, *values):
+        """Sets the return value that this expectation should return"""
+        self.and_return_from_callable(lambda *a, **kw: value)
+        for v in values:
+            def scope(value_to_return):
+                def f(*args, **kwargs):
+                    return value_to_return
+                return f
+            self.and_return_from_callable(scope(v))
+        return self
+        
+    def and_raise(self, error, message=None):
+        """Sets the exception to throw when this expectation occurs."""
+        def throw(*args, **kwargs):
+            if message:
+                raise error, message
+            else:
+                raise error
+        return self.and_return_from_callable(throw)
+    and_throw = and_throw_error = and_raise_error = and_raise
+    
+    OPERATOR_INFO = {
+        # operator function: (human-friendly name, called max times func)
+        operator.le: 'at least',
+        operator.ge: 'at most',
+        operator.eq: 'exactly',
+        operator.lt: 'at least greater than',
+        operator.ge: 'at most less than',
+        operator_any: '',
+    }
+    NUMERIC_MAP = {
+        'none': 0,
+        'nothing': 0,
+        'never': 0,
+        'zero': 0,
+        'once': 1,
+        'one': 1,
+        'twice': 2,
+        'two': 2,
+        'thrice': 3,
+        'three': 3,
+        'four': 4,
+        'five': 5,
+        'six': 6,
+        'seven': 7,
+        'eight': 8,
+        'nine': 9,
+    }
+    
+    def _called_max_times(self):
+        return self._expected_access_count and self._expected_access_count <= self._actual_access_count
+        
+    def _set_count_expectation(self, op, value):
+        if self._current_access_count_expectation:
+            self._validators.remove(self._current_access_count_expectation)
+        self._expected_access_count = self.NUMERIC_MAP.get(value, False) or int(value)
+        def func():
+            message = "%(name)r was accessed %(a)r time%(as)s when expected %(op)s %(e)r time%(es)s." % {
+                'name': self._funcdef.name,
+                'op': self.OPERATOR_INFO[op],
+                'as': 's' if self._actual_access_count != 1 else '',
+                'a': self._actual_access_count,
+                'es': 's' if self._expected_access_count != 1 else '',
+                'e': self._expected_access_count,
+            }
+            assert op(self._expected_access_count, self._actual_access_count), message
+        self._current_access_count_expectation = func
+        self._validators.append(self._current_access_count_expectation)
+        return self
+    
+    def at_least(self, n):
+        return self._set_count_expectation(operator.le, n)
+
+    def at_most(self, n):
+        return self._set_count_expectation(operator.ge, n)
+        
+    @property
+    def any_number_of_times(self):
+        return self._set_count_expectation(operator_any, 0)
+    
+    def exactly(self, n):
+        return self._set_count_expectation(operator.eq, n)
+    
+    @property
+    def once(self):
+        return self.exactly(1)
+    one = once
+    @property
+    def twice(self):
+        return self.exactly(2)
+    two = twice
+    @property
+    def never(self):
+        return self.exactly(0)
+    zero = never
+    @property
+    def times(self):
+        return self
+    time = times
+        
+    def and_return_from_callable(self, func, *funcs):
+        assert callable(func), "Given object (%r) isn't callable." % func
+        assert len(funcs) == 0 or any(map(callable, funcs)), "Not all objects in (%r) is callable" % funcs
+        self._values_to_yield.append(func)
+        self._values_to_yield.extend(funcs)
+        return self
+        
+    def _consume_return_value(self, *args, **kwargs):
+        self._order_group.verify_position(self)
+        try:
+            self._values_yielded.append(self._values_to_yield[0])
+            return self._values_to_yield.pop(0)(*args, **kwargs)
+        except IndexError:
+            #self._values_to_yield.append()
+            try:
+                return self._values_to_yield[-1](*args, **kwargs)
+            except IndexError:
+                return None
         
     def verify(self):
         for v in self._validators:
             v()
-        
-    def _freeze(self, args, kwargs):
-        """Converts args and kwargs into a hashed, immutable data struct."""
-        return ArgList(tuple(args), FrozenDict(kwargs))
-        
-    def __call__(self, *args, **kwargs):
-        # special case with __hooks__: replace self.mock.mock with self.mock
-        if self._funcdef.name.startswith('__') and self._funcdef.name.endswith('__'):
-            if args[0] == self.mock.mock:
-                args = (self.mock,) + args[1:]
-        al = self._freeze(args, kwargs)
-        try:
-            result = self._return_list[al].pop()
-        except KeyError:
-            # without creating a complex hashing algorithm, we'll have to check all argument lists
-            # manually. This shouldn't be too bad since the size of this dict is probably pretty small
-            has_result = False
-            for arglist, r in self._return_list.iteritems():
-                if arglist == al:
-                    result = r
-                    self._return_list[arglist].pop()
-                    has_result = True
-                    break
-            if not has_result:
-                self._extra_args_recieved.append((args, kwargs))
-                return None
-        if callable(result):
-            return result(*args, **kwargs)
-        return result
-        
-    def _verify_allreturns(self):
-        for key,value in self._return_list.iteritems():
-            msg = "'%(func)s' was expected, but didn't happen." % {
-                'func': str(Function((self._funcdef.name,) + tuple(key) + (self._funcdef.is_property,))),
-            }
-            assert len(value) == 0, msg
-        
-    def exactly(self, n):
-        def validate():
-            assert self.mock.call_count == n, \
-                "%(name)s was called %(c)d times when it was expected to only be called %(n)d times" % {
-                    'name': self._funcdef.name,
-                    'c': self.mock.call_count,
-                    'n': n,
-                }
-        self._validators.append(validate)
-        return self
-        
-    @property
-    def times(self):
-        pass
     
-    def and_raise(self, exception):
-        def throw(*args, **kwargs):
-            raise exception
-        return self.and_return(throw)
+    def __call__(self, *args, **kwargs):
+        self._actual_access_count += 1
+        self._args_recieved.append(ArgList(args, kwargs))
+        return self._consume_return_value(*args, **kwargs)
         
-    def and_return(self, value):
-        key = self._freeze(self._funcdef.args, self._funcdef.kwargs)
-        self._return_list[key][-1] = value
-        return self
+    def __repr__(self):
+        return str(self._funcdef)
     
     @property
     def as_property(self):
         # TODO: inject some property handling methods to work accross multiple mock objects
-        setattr(self.mock.__class__, self._funcdef.name, property(lambda s: self()))
+        setattr(self._mock.__class__, self._funcdef.name, property(lambda s: self()))
         return self
 
 class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOperatorsMixin, mixins.LogicalOperatorsMixin, mixins.SequenceMixin):
@@ -108,9 +214,11 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
             repository.register(self)
         self.mock = mocker.MagicMock(spec=klass)
         self._strict = strict
+        self._order_group = []
         self._validators = [self._order_group.verify]
         self._exclude_list = []
         self._access_log = []
+        self._reset_hook = []
         
     # === override the default processors for the mixins to pass the work to the mock object.
     # For some strange reason, __getattr__() doesn't pick these hooks up.
@@ -133,8 +241,6 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
     
     @property
     def should_access(self):
-        ma = MockAttribute(self)
-        self._asserters.append(ma.verify)
         return FunctionName(ma, attribute='funcdef')
     
     @property
