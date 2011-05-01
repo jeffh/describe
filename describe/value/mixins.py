@@ -166,6 +166,7 @@ class NotMixin(object):
     @property
     def should_not(self):
         return self._new_plain_value(self.__value)
+    and_should_not = should_not
         
     def change(self, obj, attr):
         chgVal = ChangeValue(obj, attr, self.expect)

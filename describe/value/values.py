@@ -82,7 +82,7 @@ class BaseValue(ValueInternals):
     def should(self):
         """Returns the same value object. Use this method to make your statements readable."""
         return self # 'should' be enforced as a prefix? but for now this will do
-    be = should
+    and_should = be = should
     
         
     def satisfy(self, func):
