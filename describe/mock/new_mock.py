@@ -106,10 +106,7 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
     def __init__(self, klass=None, repository=repos.default, strict=True):
         if repository:
             repository.register(self)
-        if klass is not None:
-            self.mock = mocker.MagicMock(spec=klass)
-        else:
-            self.mock = mocker.Mock()
+        self.mock = mocker.MagicMock(spec=klass)
         self._strict = strict
         self._validators = [self._order_group.verify]
         self._exclude_list = []
