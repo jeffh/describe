@@ -28,5 +28,5 @@ def execute_nose(*args):
     from describe.nose_plugin import SpecPlugin
     import nose
     if print_to_stdout:
-        args = args + ('-s',)
-    return nose.run(argv=list(args + ('-x',)), addplugins=[SpecPlugin()])
+        a = args + ('-s',)
+    return nose.run(argv=list(a + ('-x',)), addplugins=[SpecPlugin()])
