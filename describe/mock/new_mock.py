@@ -237,6 +237,9 @@ class OrderingGroup(object):
         error, self._first_error = self._first_error, None
         if error:
             raise error
+    
+    def reset(self):
+        self._objs = []
         
     def verify_position(self, expectation):
         if len(self) == 0:
@@ -323,6 +326,7 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
             r()
         self._reset_hook = []
         self._access_log = []
+        self._order_group.reset()
         self.mock.reset_mock()
     
     def __getattr__(self, name):
