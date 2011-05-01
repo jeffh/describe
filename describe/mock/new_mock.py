@@ -148,17 +148,24 @@ class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOp
         self._exclude_list.append(func.name)
         
     def verify(self, strict=True):
-        for v in self._validators:
-            v()
-        if strict and self._strict:
-            exclude = set(self._exclude_list)
-            for attr in self._access_log:
-                if attr in exclude:
-                    msg = "Mock expected that %(name)r would not be accessed." % {'name': attr}
-                    raise AssertionError, msg
+        try:
+            for v in self._validators:
+                v()
+            if strict and self._strict:
+                exclude = set(self._exclude_list)
+                for attr in self._access_log:
+                    if attr in exclude:
+                        msg = "Mock expected that %(name)r would not be accessed." % {'name': attr}
+                        raise AssertionError, msg
+        finally:
+            self.reset_mock()
             
-    def reset(self):
+    def reset_mock(self):
+        for r in self._reset_hook:
+            r()
+        self._reset_hook = []
         self._access_log = []
+        self.mock.reset_mock()
     
     def __getattr__(self, name):
         self._access_log.append(name)
