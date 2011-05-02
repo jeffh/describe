@@ -1,6 +1,8 @@
 import repository as repos
 import mock as mocker
-from .. import Value, mixins
+from ..value import Value
+from ..mixins import InplaceOperatorsMixin, OperatorsMixin, ReverseOperatorsMixin, \
+    LogicalOperatorsMixin, SequenceMixin
 from utils import FunctionName, Function
 from args_matcher import ArgList
 from ..frozen_dict import FrozenDict
@@ -264,7 +266,7 @@ class OrderingGroup(object):
             return False
         return True
     
-class Mock(mixins.InplaceOperatorsMixin, mixins.OperatorsMixin, mixins.ReverseOperatorsMixin, mixins.LogicalOperatorsMixin, mixins.SequenceMixin):
+class Mock(InplaceOperatorsMixin, OperatorsMixin, ReverseOperatorsMixin, LogicalOperatorsMixin, SequenceMixin):
     def __init__(self, klass=None, repository=repos.default, strict=True, mock_class=mocker.Mock):
         if repository:
             repository.register(self)

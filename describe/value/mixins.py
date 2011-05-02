@@ -1,7 +1,8 @@
 from properties import Properties
 from decorators import VerifyDecorator, DeferredDecorator
 from ..tracebacks import get_current_stack, get_stack
-from .. import mixins as mix
+from ..mixins import OperatorsMixin, ReverseOperatorsMixin, InplaceOperatorsMixin, \
+    BuiltinFunctionsMixin
 import re
 try:
     set
@@ -11,7 +12,7 @@ except ValueError:
 __ALL__ = ['OperatorsMixin', 'BuiltinFunctionsMixin', 'PropertyMixin', 'InvokerMixin', 'NotMixin',
     'EnumerableMixin']
     
-class OperatorsMixin(mix.OperatorsMixin, mix.ReverseOperatorsMixin, mix.InplaceOperatorsMixin):
+class OperatorsMixin(OperatorsMixin, ReverseOperatorsMixin, InplaceOperatorsMixin):
     """All operators return new lazy Value object after operating on the wrapped value object."""
     def _lazy_value(self, a, b, func, single_arg=False):
         lamb = lambda: func(a.value,b)
@@ -25,7 +26,7 @@ class OperatorsMixin(mix.OperatorsMixin, mix.ReverseOperatorsMixin, mix.InplaceO
         return a
     InplaceOperatorProcessor = _inplace_lazy_value
 
-class BuiltinFunctionsMixin(mix.BuiltinFunctionsMixin):
+class BuiltinFunctionsMixin(BuiltinFunctionsMixin):
     """All builtin hooks return a new lazy value object when possible.
     
     If cannot return a new object (due to constraints of the hook, they are actively eval'ed)
