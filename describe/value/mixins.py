@@ -3,14 +3,14 @@ from decorators import VerifyDecorator, DeferredDecorator
 from ..tracebacks import get_current_stack, get_stack
 from ..mixins import OperatorsMixin, ReverseOperatorsMixin, InplaceOperatorsMixin, \
     BuiltinFunctionsMixin
+from ..utils import is_iter, diff_iterables, ellipses
 import re
 try:
     set
 except ValueError:
     from sets import Set as set
 
-__ALL__ = ['OperatorsMixin', 'BuiltinFunctionsMixin', 'PropertyMixin', 'InvokerMixin', 'NotMixin',
-    'EnumerableMixin']
+__ALL__ = ['OperatorsMixin', 'BuiltinFunctionsMixin', 'PropertyMixin', 'InvokerMixin', 'NotMixin', 'EnumerableMixin', 'CollectionMixin']
     
 class OperatorsMixin(OperatorsMixin, ReverseOperatorsMixin, InplaceOperatorsMixin):
     """All operators return new lazy Value object after operating on the wrapped value object."""
@@ -57,20 +57,19 @@ class StringMixin(object):
         self.expect(re.search(regex, self.value),
             "%(regex)r.search(%(value)r) %(should)s return a match.",
             regex=regex)
-            
+
+class CollectionMixin(object):
+    def have_keys(self, key, *keys):
+        for k in (key,) + keys:
+            try:
+                self.value[k]
+            except IndexError, KeyError:
+                self.expect(False, "%(key)r not found in %(value)r", key=k)
+    
+    have_key = have_keys
 
 class EnumerableMixin(object):
     """Enumerable specific methods."""
-    def requires_enumerable(self):
-        prev_stack = get_current_stack()[1]
-        try:
-            return
-        except TypeError:
-            self.requires(False,
-                "Value(%(val)r).%(method)s %(should)s be enumerable, but wasn't (tried iter()).",
-                method=prev_stack.name,
-                val=self.value)
-                
     def iter_as_values(self):
         """Converts each element of the wrapped value as a Value object.
         
@@ -82,7 +81,7 @@ class EnumerableMixin(object):
         .. seealso:: :meth:`~describe.value.Value.iterate`
         
         """
-        self.requires_enumerable()
+        self.enumerable()
         return iter(map(self._new_value, self.value))
         
     def enumerable(self):
@@ -93,8 +92,7 @@ class EnumerableMixin(object):
             Value([1,2,3]).should.be.enumerable
         
         """
-        self.expect(iter(self.value),
-            "iter(%(value)r) %(should)s be supported.")
+        self.expect(is_iter(self.value), "%(value)r %(should)s be enumerable.")
             
     def have_equal_elements_to(self, other):
         """Expects that the given elements appear in the same order as the
@@ -112,10 +110,17 @@ class EnumerableMixin(object):
             Value([1,2,3]).should.have_equals_elements_to((1,2,3))
         
         """
-        self.requires_enumerable()
-        self.expect(tuple(self.value) == tuple(other),
-            "tuple(%(value)r) should have equal elements to tuple(%(other)r).",
-            other=other)
+        self.enumerable()
+        self.expect(is_iter(other), "value.has_equal_elements_to(%(other)r) should be iterable.", other=other)
+        result = diff_iterables(self.value, other)
+        msg = "%(value)s %(should)s have equal elements to %(other)s.\n\n%(diff)s"
+        kwargs = {
+            'other': ellipses(repr(other), self.REPR_MAX_LENGTH),
+            'value': ellipses(repr(self.value), self.REPR_MAX_LENGTH),
+            'diff': 'At element %(i)d:\n%(x)r\nshould equal to\n%(y)r' % \
+                (result or {}),
+        }
+        self.expect(result is None, msg, **kwargs)
         
     @classmethod
     def iterate(cls, enumerables):

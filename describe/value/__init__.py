@@ -17,8 +17,8 @@ from mixins import *
 
 __ALL__ = ['Value']
 
-class SharedValue(BuiltinFunctionsMixin, OperatorsMixin, PropertyMixin,
-    StringMixin, EnumerableMixin, InvokerMixin, BaseValue):
+class SharedValue(BuiltinFunctionsMixin, CollectionMixin, OperatorsMixin, 
+    PropertyMixin, StringMixin, EnumerableMixin, InvokerMixin, BaseValue):
     pass
 
 class NotValue(NotMixin, SharedValue):

@@ -1,15 +1,21 @@
 from number_value import NumberValue
 from change_value import ChangeValue
+import operator
+from ..utils import ellipses, diff_iterables, is_iter
 
 class AssertionCore(object):
     def requires(self, assertion, message=None, **kwargs):
         # don't accidentally force EVAL if an exception was thrown
         if not self.lazy_eval_error:
-            kwargs['value'] = self.value
-            kwargs['value_name'] = getattr(self.value, '__name__', str(self.value))
+            if 'value' not in kwargs:
+                kwargs['value'] = self.value
+            if 'value_name' not in kwargs:
+                kwargs['value_name'] = getattr(self.value, '__name__', str(self.value))
         else:
-            kwargs['value'] = repr(self.raw_value)
-            kwargs['value_name'] = getattr(self.raw_value, '__name__', str(self.raw_value))
+            if 'value' not in kwargs:
+                kwargs['value'] = repr(self.raw_value)
+            if 'value_name' not in kwargs:
+                kwargs['value_name'] = getattr(self.raw_value, '__name__', str(self.raw_value))
         if 'should' not in kwargs:
             kwargs['should'] = 'should'
         if message is not None:
@@ -22,6 +28,7 @@ class AssertionCore(object):
 
 # all internal APIs in the Value object go here
 class ValueInternals(AssertionCore):
+    REPR_MAX_LENGTH = 50
     def __init__(self, value, lazy=False):
         self.__value = value
         self.__lazy = lazy
@@ -32,7 +39,7 @@ class ValueInternals(AssertionCore):
             if self.lazy_eval_error:
                 return "<Value: lazy_evaled(%s) with exceptions>" % self.__value.__name__
             return "<Value: lazy_eval(%s)>" % self.__value.__name__
-        return "<Value: %r>" % repr(self.__value)
+        return "<Value: %s>" % ellipses(repr(repr_str), self.REPR_MAX_LENGTH)
         
     @property
     def lazy_eval_error(self):
@@ -194,7 +201,19 @@ class BaseValue(ValueInternals):
         self.expect(not self.value, "%(value)r %(should)s logically False.")
     
     def __eq__(self, other):
-        self.expect(self.value == other, "%(value)r %(should)s == %(other)r.", other=other)
+        expectation = self.value == other
+        if is_iter(self.value) and is_iter(other) and not expectation:
+            result = diff_iterables(self.value, other)
+            msg = "%(value)s %(should)s == %(other)s.\n\n%(diff)s"
+            kwargs = {
+                'other': ellipses(repr(other), self.REPR_MAX_LENGTH),
+                'value': ellipses(repr(self.value), self.REPR_MAX_LENGTH),
+                'diff': 'At element %(i)d:\n%(x)r\nshould equal\n%(y)r' % \
+                    (result or {}),
+            }
+            self.expect(expectation, msg, **kwargs)
+        else:
+            self.expect(expectation, "%(value)s %(should)s == %(other)s.", other=other)
     
     def __ne__(self, other):
         self.expect(self.value != other, "%(value)r %(should)s != %(other)r.", other=other)
