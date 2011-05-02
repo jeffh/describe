@@ -1,7 +1,7 @@
 from number_value import NumberValue
 from change_value import ChangeValue
 import operator
-from ..utils import ellipses, diff_iterables, is_iter
+from ..utils import ellipses, diff_iterables, is_iter, diff_dict, diff_iterable_str, diff_dict_str
 
 class AssertionCore(object):
     def requires(self, assertion, message=None, **kwargs):
@@ -202,15 +202,24 @@ class BaseValue(ValueInternals):
     
     def __eq__(self, other):
         expectation = self.value == other
-        if is_iter(self.value) and is_iter(other) and not expectation:
+        if isinstance(self.value, dict) and isinstance(other, dict):
+            result = diff_dict(self.value, other)
+            msg = "%(value)s %(should)s == %(other)s.\n\n%(diff)s"
+            kwargs ={
+                'other': ellipses(repr(other), self.REPR_MAX_LENGTH),
+                'value': ellipses(repr(self.value), self.REPR_MAX_LENGTH),
+                'diff': diff_dict_str(result),
+            }
+            self.expect(expectation, msg, **kwargs)
+        elif is_iter(self.value) and is_iter(other) and not expectation:
             result = diff_iterables(self.value, other)
             msg = "%(value)s %(should)s == %(other)s.\n\n%(diff)s"
             kwargs = {
                 'other': ellipses(repr(other), self.REPR_MAX_LENGTH),
                 'value': ellipses(repr(self.value), self.REPR_MAX_LENGTH),
-                'diff': 'At element %(i)d:\n%(x)r\nshould equal\n%(y)r' % \
-                    (result or {}),
+                'diff': diff_iterable_str(result),
             }
+
             self.expect(expectation, msg, **kwargs)
         else:
             self.expect(expectation, "%(value)s %(should)s == %(other)s.", other=other)

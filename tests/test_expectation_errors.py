@@ -18,6 +18,15 @@ class DescribeExpectationErrors(Spec):
             assert ellipses(repr(list1), 20) in msg
             assert ellipses(repr(list2), 20) in msg
             
+    def it_should_show_diff_in_dict_eq_comparison(self):
+        dict1, dict2 = {'abc-key':'b'}, {'bcd-key': 'c'}
+        try:
+            Value(dict1).should == dict2
+        except AssertionError, e:
+            msg = e.message[e.message.index('\n'):]
+            assert 'no value' in msg
+            assert 'abc-key' in msg
+            
     def it_should_show_diff_in_iterable_eq_comparison(self):
         eq_part = list(range(50, 75))
         list1, list2 = eq_part + list(range(50)), eq_part + list(reversed(range(50)))
