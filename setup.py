@@ -16,9 +16,10 @@ setup(
         'mock'
     ],
     entry_points = {
-        'nose.plugins.0.10': ['describe = describe:nose_plugin:SpecPlugin']
-        'console_scripts': ['describe = describe:main'],
+        'nose.plugins.0.10': ['describe = describe.nose_plugin:SpecPlugin'],
+        #'console_scripts': ['describe = describe:main'],
     },
+    test_suite = 'tests.run',
     packages=find_packages(),
     license='MIT',
     classifiers=[
