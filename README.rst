@@ -155,5 +155,31 @@ The entire purpose of behavior driven development, is to remap the testing-based
 more specification driven ones. The Spec class is an alternative to unittest.TestCase, but you'll
 need nose_ / sniffer_ to reap all the benefits.
 
+Currently Specs inherit unittest.TestCase::
+
+  from describe import Spec, Mock
+  from describ.args import *
+  class DescribeRSpecExpectingArguments(Spec):
+      def before(self):
+          self.m = Mock()
+
+      def it_should_expect_arguments(self):
+          self.m.should_access.msg(1,2,3)
+          self.m.msg(1,2,3)
+
+      def it_should_expect_arguments_with_count(self):
+          self.m.should_access.msg(1,2,3).once
+          self.m.msg(1,2,3)
+
+      def it_should_expect_no_arguments(self):
+          self.m.should_access.msg()
+          self.m.msg()
+
+      def it_should_expect_any_arguments(self):
+          self.m.should_access.msg(ANYTHING)
+          self.m.msg(1,2,3,4,5,6)
+          
+Then use the `SpecPlugin`` for nose to run the specs, or run describe.main program.
+
 .. _nose: http://somethingaboutorange.com/mrl/projects/nose/1.0.0/
 .. _sniffer: https://github.com/jeffh/sniffer
