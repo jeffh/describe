@@ -182,9 +182,13 @@ class BaseValue(ValueInternals):
             Value(2.2).should.be.type_of(float)
         
         """
+        if isinstance(the_type, tuple):
+            type_names = ', '.join( t.__name__ for t in the_type )
+        else:
+            type_names = the_type.__name__
         self.expect(isinstance(self.value, the_type),
             "%(value)r %(should)s be of type %(name)s instead of %(value_name)s",
-            name=the_type.__name__, value_name=type(self.value).__name__)
+            name=type_names, value_name=type(self.value).__name__)
     type_of = instance_of
     
     def have_attr(self, name):
