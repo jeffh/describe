@@ -39,7 +39,7 @@ class ValueInternals(AssertionCore):
             if self.lazy_eval_error:
                 return "<Value: lazy_evaled(%s) with exceptions>" % self.__value.__name__
             return "<Value: lazy_eval(%s)>" % self.__value.__name__
-        return "<Value: %s>" % ellipses(repr(repr_str), self.REPR_MAX_LENGTH)
+        return "<Value: %s>" % ellipses(repr(self.__value), self.REPR_MAX_LENGTH)
         
     @property
     def lazy_eval_error(self):
