@@ -10,12 +10,12 @@ class AssertionCore(object):
             if 'value' not in kwargs:
                 kwargs['value'] = self.value
             if 'value_name' not in kwargs:
-                kwargs['value_name'] = getattr(self.value, '__name__', str(self.value))
+                kwargs['value_name'] = getattr(self.value, '__name__', repr(self.value))
         else:
             if 'value' not in kwargs:
                 kwargs['value'] = repr(self.raw_value)
             if 'value_name' not in kwargs:
-                kwargs['value_name'] = getattr(self.raw_value, '__name__', str(self.raw_value))
+                kwargs['value_name'] = getattr(self.raw_value, '__name__', repr(self.raw_value))
         if 'should' not in kwargs:
             kwargs['should'] = 'should'
         if message is not None:
