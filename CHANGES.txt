@@ -1,7 +1,7 @@
 Changelog
 ==========
 
-bleeding
+1.0.0
 -----
  - Added Mocking API
  - Added a bunch of tests

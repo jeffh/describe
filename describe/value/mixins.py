@@ -1,3 +1,7 @@
+"""Provides the extensive feature set for the Value objects. It can be assumed that all are
+mixed into the ValueInternals object.
+"""
+
 from properties import Properties
 from decorators import VerifyDecorator, DeferredDecorator
 from ..tracebacks import get_current_stack, get_stack
@@ -43,6 +47,7 @@ class BuiltinFunctionsMixin(BuiltinFunctionsMixin):
 class StringMixin(object):
     """String specific methods."""
     def requires_string(self):
+        """Internal. Enforces the provided type to be a string."""
         prev_stack = get_current_stack()[1]
         self.requires(type(self.value) == str,
             "Value(%(value)r).%(method)s %(should)s be type str, but was type %(actual)s.",
