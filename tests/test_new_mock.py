@@ -348,13 +348,26 @@ class DescribeRelaxedMock(Spec):
         self.m = Mock(strict=False)
 
     def it_should_not_raise_error_on_random_invocation(self):
-        self.m.foo()
+        self.m.foobar()
 
     def it_should_not_raise_error_on_random_invocations_with_certain_expectations(self):
         self.m.should_access.upper().and_return('bar')
-        self.m.foo()
+        self.m.foobar()
         Value(self.m).invoking.upper().should == 'bar'
 
     @fails_verification
     def it_should_raise_error_when_certain_expectations_are_not_met(self):
-        self.m.should_access.foo()
+        self.m.should_access.foobar()
+
+class DescribeMockAttribute(Spec):
+    def before(self):
+        self.m = Mock()
+
+    def it_should_allow_attribute_accessible(self):
+        self.m.should_access.foo.and_return('bar')
+        Value(self.m).get.foo.should == 'bar'
+
+    def it_should_allow_attribute_writable(self):
+        #self.should_write
+        pass
+
