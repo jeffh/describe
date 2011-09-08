@@ -20,7 +20,7 @@ def run_spec(specs=()):
             except AssertionError, ae:
                 tb = get_last_traceback()
                 stack = get_stack(tb)
-            
+
                 for frame in stack:
                     print "Frame: %s in %s at line %s:" % (
                         frame.name,
@@ -32,7 +32,7 @@ def run_spec(specs=()):
                 if tear_down:
                     tear_down()
                 sys.stdout.flush()
-                
+
 if __name__ == '__main__':
     #nose.main(addplugins=[SpecPlugin()])
     nose.run(addplugins=[SpecPlugin()])

@@ -14,7 +14,7 @@ class SpecSelector(nose.selector.Selector):
             if prefix in parts:
                 return True
         return False
-    
+
     def wantFile(self, filename):
         parts = filename.lower().split(os.path.sep)
         base, ext = os.path.splitext(parts[-1])
@@ -27,20 +27,20 @@ class SpecSelector(nose.selector.Selector):
             if prefix in parts:
                 return True
         return False
-    
+
     def wantModule(self, module):
         return True
-        
+
     def wantFunction(self, func):
         name = func.__name__
         if name.startswith('it') or name.startswith('test'):
             return True
         return None
-    
+
     def wantClass(self, cls):
         return issubclass(cls, Spec) or cls.__name__.lower().startswith('describe') or \
             issubclass(cls, unittest.TestCase)
-            
+
     def wantMethod(self, method):
         name = method.__name__
         if name.startswith('it') or name.startswith('should') or name.startswith('test'):

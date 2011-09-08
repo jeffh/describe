@@ -8,7 +8,7 @@ class Frame(object):
         self.line_number = frame.f_lineno
         self.code_context = code_context
         self.index = index or 0
-        
+
     def __repr__(self):
         return "<Frame: %(name)s %(filename)s @ %(linum)d:%(index)d>" % {
             'name': self.name,
@@ -24,7 +24,7 @@ def get_last_traceback():
             break
         tb = tb.tb_next
     return tb
-    
+
 def get_stack(traceback):
     stack = []
     f = traceback.tb_frame
@@ -33,7 +33,7 @@ def get_stack(traceback):
         f = f.f_back
     stack.reverse()
     return stack
-    
+
 def get_current_stack():
     stack = []
     for frm, filename, linum, method, code_context, index in inspect.stack()[1:]:

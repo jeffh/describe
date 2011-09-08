@@ -15,7 +15,7 @@ class DeferredDecorator(object):
         self.kwargs = kwargs
         self.func = func
         self.__name__ = getattr(func, '__name__', repr(func))
-    
+
     def __call__(self):
         return self.func(*self.args, **self.kwargs)
-        
+

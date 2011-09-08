@@ -8,17 +8,17 @@ class ArgFilter(object):
         self.name = name
         self.func = lambda x: True
         self.comment =''
-    
+
     def __repr__(self):
         return "<%s%s>" % (self.name, self.comment)
-        
+
     def __call__(self, func):
         self.func = func
         return self
-        
+
     def __eq__(self, other):
         return self.name == getattr(other, 'name', None) and self.func == getattr(other, 'func', None)
-    
+
     def verify(self, arg):
         return self.func(arg)
 
@@ -26,7 +26,7 @@ class MultiArgFilters(ArgFilter):
     def __init__(self, *filters):
         self.name = 'multiple_filters'
         self.funcs = tuple(filters)
-        
+
     def __eq__(self, other):
         return self.name == other.name and self.funcs == other.funcs
 
@@ -40,12 +40,12 @@ filters = MultiArgFilters
 @ArgFilter('MISSING_ARG')
 def MISSING_ARG(obj):
     return False
-    
+
 ANYTHING = ArgFilter('ANYTHING')
 @ArgFilter('ANY_ARG')
 def ANY_ARG(obj):
     return type(obj) != ArgFilter or obj.name != 'MISSING_ARG'
-    
+
 ARGS = ArgFilter('*args')
 KWARGS = ArgFilter('**kwargs')
 
@@ -55,7 +55,7 @@ def an_instance_of(the_type):
         return type(obj) == the_type
     aio.comment = '(%s)' % the_type.__name__
     return aio
-    
+
 boolean = an_instance_of(bool)
 regexp = an_instance_of(type(re.compile('')))
 

@@ -13,7 +13,7 @@ class NumberValue(object):
             self.expect(self.value == amount,
                 (self.format+" %(should)s == %(amount)s"), amount=amount)
         return self
-    
+
     # this allows us to to postfix: 'value.should.have(5).items'
     # at some point, we should be smarter about this.
     def __getattr__(self, name):

@@ -39,8 +39,8 @@ class ValueInternals(AssertionCore):
             if self.lazy_eval_error:
                 return "<Value: lazy_evaled(%s) with exceptions>" % self.__value.__name__
             return "<Value: lazy_eval(%s)>" % self.__value.__name__
-        return "<Value: %s>" % ellipses(repr(repr_str), self.REPR_MAX_LENGTH)
-        
+        return "<Value: %s>" % ellipses(repr(self.value), self.REPR_MAX_LENGTH)
+
     @property
     def lazy_eval_error(self):
         "Returns exception that occurred when trying to eval the value. Otherwise returns False."
@@ -74,7 +74,7 @@ class ValueInternals(AssertionCore):
 
     def _new_value(self, val, lazy=False):
         """Returns a new instance that wraps the given value.
-        
+
         If val is a function and lazy=True, then the argumentless function is invoked
         before the value is retrived.
         """
@@ -90,17 +90,17 @@ class BaseValue(ValueInternals):
     def should(self):
         """Returns the same value object.
         Use this method to make your statements readable.
-        
+
         :returns: Same instance.
         :aliases: be, and_should
-        
+
         .. seealso:: :attr:`~describe.value.Value.should_not`
-        
+
         """
         return self # 'should' be enforced as a prefix? but for now this will do
     and_should = be = should
-    
-        
+
+
     def satisfy(self, func):
         """Provide a custom function for verification. Return False on failure or True on success."""
         if callable(func):
@@ -110,15 +110,15 @@ class BaseValue(ValueInternals):
             def decorator(fun):
                 self.expect(fun(self.value), func % {'value': self.value})
             return decorator
-        
+
     @property
     def have(self):
         """Returns a NumberValue object for the length of the wrapped value."""
         return NumberValue(len(self.value), self.expect, format="len(%(value)r)")
-    
+
     def be_close_to(self, value, delta=0.000001):
         """Like == operator, but accounts for error for floating point inaccuracies.
-        
+
         :param value: Use assert that float values are equal, within a
             certain `delta`.
         :type value: float
@@ -126,37 +126,37 @@ class BaseValue(ValueInternals):
             value and the provided value.
         :type delta: float
         :aliases: close_to
-        
+
         Example::
-        
+
             Value(1.0).should.be_close_to(1.0)
-        
+
         """
         self.expect(abs(self.value - value) < delta,
             "%(value)r %(should)s == %(other)r +/- %(delta)r",
             other=value, delta=delta)
     close_to = be_close_to # alias
-            
+
     def change(self, obj, attr=None, key=None):
         """Compares the changes in a specific attribute or key of `obj`.
         The attribute or key should be a type that support the subtraction
         operation.
-        
+
         This is used to check if a function changed the given `obj`
-        
+
         :param obj: The object to check for a change.
         :type obj: object
         :param attr: The attribute to access from the object: `getattr(obj, attr)`
         :type attr: str
         :param key: The key to access from the object: `obj[key]`
         :type key: str
-        
+
         .. note::
-        
+
             Value should be a function that changes an object.
-        
+
         Example::
-        
+
             s = {'a': 0}
             @Value
             def increment():
@@ -168,38 +168,40 @@ class BaseValue(ValueInternals):
         chgVal.capture_value_as_new()
         chgVal.expect_values_to_be_not_equal()
         return chgVal
-        
+
     def instance_of(self, the_type):
         """Checks if the type of the wrapped object is an instance of the given type.
-        
+
         :param the_type: The class/type to compare the wrapped value's class type to.
         :type the_type: type
         :aliases: type_of
-        
+
         Example::
-        
+
             Value(2).should.be.instance_of(int)
             Value(2.2).should.be.type_of(float)
-        
+
         """
         self.expect(isinstance(self.value, the_type),
             "%(value)r %(should)s be of type %(name)s instead of %(value_name)s",
             name=the_type.__name__, value_name=type(self.value).__name__)
     type_of = instance_of
-    
+
     def have_attr(self, name):
         self.expect(hasattr(self.value, name),
             "%(value)r %(should)s have attribute %(name)s",
             name=name)
     have_attribute = have_attr
-    
+
     #@property
     def true(self):
+        """Expects the value to be logically true."""
         self.expect(bool(self.value), "%(value)r %(should)s logically True.")
     #@property
     def false(self):
+        """Expects the value to be logically false."""
         self.expect(not self.value, "%(value)r %(should)s logically False.")
-    
+
     def __eq__(self, other):
         expectation = self.value == other
         if isinstance(self.value, dict) and isinstance(other, dict):
@@ -223,29 +225,29 @@ class BaseValue(ValueInternals):
             self.expect(expectation, msg, **kwargs)
         else:
             self.expect(expectation, "%(value)s %(should)s == %(other)s.", other=other)
-    
+
     def __ne__(self, other):
         self.expect(self.value != other, "%(value)r %(should)s != %(other)r.", other=other)
-    
+
     def __lt__(self, other):
         self.expect(self.value < other, "%(value)r %(should)s < %(other)r.", other=other)
-    
+
     def __le__(self, other):
         self.expect(self.value <= other, "%(value)r %(should)s <= %(other)r", other=other)
-    
+
     def __gt__(self, other):
         self.expect(self.value > other, "%(value)r %(should)s > %(other)r", other=other)
-    
+
     def __ge__(self, other):
         self.expect(self.value >= other, "%(value)r %(should)s >= %(other)r", other=other)
-        
+
     def __nonzero__(self):
         self.expect(bool(self.value), "%(value)r %(should)s be logically True")
         return bool(self.value)
-    
+
     def contain(self, item, *items):
         """Expects that the given `item` and `*items` be in the wrapped value.
-        
+
         :param item: The item to check is contained in the wrapped value.
         :type item: object
         :param items: More items may be specified to check if they are in
@@ -254,13 +256,13 @@ class BaseValue(ValueInternals):
         This is identical to asserting for each item::
 
             assert obj in wrapped_value
-            
+
         Alternatively, you may use the `in` keyword::
-        
+
             2 in Value([1,2,3])
-        
+
         Example usage::
-            
+
             Value([1,2,3]).should.contain(1,2,3)
 
         """
@@ -269,9 +271,10 @@ class BaseValue(ValueInternals):
         for i in items:
             self.expect(i in self.value, msg, item=i)
         return self
-    
+
     def __contains__(self, item):
         self.contain(item)
-    
+
     def __setitem__(self, key, value):
         raise Exception, "Value is unassignable. Did you mean ==?"
+

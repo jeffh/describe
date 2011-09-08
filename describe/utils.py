@@ -17,7 +17,7 @@ def is_iter(obj):
             return True
     except TypeError:
         return False
-        
+
 def diff_dict(dict1, dict2, op=operator.ne):
     MSSING = object()
     for key in set(dict1).union(dict2):
@@ -52,7 +52,7 @@ def diff_iterables(iter1, iter2, op=operator.ne):
         if op(x, y):
             return h
     return None
-    
+
 def diff_iterable_str(h):
     if not h:
         return ""

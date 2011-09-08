@@ -5,13 +5,13 @@ def default_operator_processor(a, b, operatorfn, single_arg=False):
     if single_arg:
         return operatorfn(a)
     return operatorfn(a, b)
-    
+
 def default_sequences_processor(obj, args, operatorfn):
     return operatorfn(obj, *args)
 
 def default_builtin_processor(obj, typefn):
     return typefn(obj)
-    
+
 div = operator.div
 idiv = operator.idiv
 if 1/2 == 0.5: # true div
@@ -21,7 +21,7 @@ if 1/2 == 0.5: # true div
 class InplaceOperatorsMixin(object):
     """Provides an abstraction to manually overriding all inplace operator methods."""
     InplaceOperatorProcessor = default_operator_processor
-    
+
     def __iadd__(self, other):      return self.InplaceOperatorProcessor(self, other, operator.iadd)
     def __isub__(self, other):      return self.InplaceOperatorProcessor(self, other, operator.isub)
     def __imul__(self, other):      return self.InplaceOperatorProcessor(self, other, operator.imul)
@@ -34,11 +34,11 @@ class InplaceOperatorsMixin(object):
     def __iand__(self, other):      return self.InplaceOperatorProcessor(self, other, operator.iand)
     def __ixor__(self, other):      return self.InplaceOperatorProcessor(self, other, operator.ixor)
     def __ior__(self, other):       return self.InplaceOperatorProcessor(self, other, operator.ior)
-    
+
 class ReverseOperatorsMixin(object):
     """All operators return new lazy Value object after operating on the wrapped value object."""
     ReverseOperatorProcessor = default_operator_processor
-    
+
     def __radd__(self, other):      return self.ReverseOperatorProcessor(other, self, operator.radd)
     def __rsub__(self, other):      return self.ReverseOperatorProcessor(other, self, operator.sub)
     def __rmul__(self, other):      return self.ReverseOperatorProcessor(other, self, operator.mul)
@@ -51,11 +51,11 @@ class ReverseOperatorsMixin(object):
     def __rand__(self, other):      return self.ReverseOperatorProcessor(other, self, operator.and_)
     def __rxor__(self, other):      return self.ReverseOperatorProcessor(other, self, operator.xor)
     def __ror__(self, other):       return self.ReverseOperatorProcessor(other, self, operator.or_)
-    
+
 class OperatorsMixin(object):
     """All operators return new lazy Value object after operating on the wrapped value object."""
     OperatorProcessor = default_operator_processor
-    
+
     def __add__(self, other):       return self.OperatorProcessor(self, other, operator.add)
     def __sub__(self, other):       return self.OperatorProcessor(self, other, operator.sub)
     def __mul__(self, other):       return self.OperatorProcessor(self, other, operator.mul)
@@ -71,11 +71,11 @@ class OperatorsMixin(object):
     def __neg__(self):              return self.OperatorProcessor(self, None, operator.neg, single_arg=True)
     def __pos__(self):              return self.OperatorProcessor(self, None, operator.pos, single_arg=True)
     def __invert__(self):           return self.OperatorProcessor(self, None, operator.invert, single_arg=True)
-    
+
 class LogicalOperatorsMixin(object):
     """All hooks that are used for logical operations."""
     LogicalOperatorProcessor = default_operator_processor
-    
+
     def __nonzero__(self):          return self.LogicalOperatorProcessor(self, None, operator.truth, single_arg=True)
     def __lt__(self, other):        return self.LogicalOperatorProcessor(self, other, operator.lt)
     def __le__(self, other):        return self.LogicalOperatorProcessor(self, other, operator.le)
@@ -87,7 +87,7 @@ class LogicalOperatorsMixin(object):
 class BuiltinFunctionsMixin(object):
     """All hooks that coerce the object to a given type, but not strictly enforced."""
     BuiltinFunctionProcessor = default_builtin_processor
-    
+
     def __abs__(self):              return self.BuiltinFunctionProcessor(self, abs)
     
 class BuiltinTypesMixin(object):    
@@ -103,8 +103,9 @@ class BuiltinTypesMixin(object):
 class SequenceMixin(object):
     """All hooks that deal with collection of items."""
     SequenceProcessor = default_sequences_processor
-    
+
     def __contains__(self, obj):    return self.SequenceProcessor(self, (obj,), operator.contains)
     def __getitem__(self, obj):     return self.SequenceProcessor(self, (obj,), operator.getitem)
     def __setitem__(self, obj, val):return self.SequenceProcessor(self, (obj,val), operator.setitem)
     def __delitem__(self, obj):     return self.SequenceProcessor(self, (obj,), operator.delitem)
+
