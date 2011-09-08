@@ -89,14 +89,10 @@ class BuiltinFunctionsMixin(object):
     BuiltinFunctionProcessor = default_builtin_processor
 
     def __abs__(self):              return self.BuiltinFunctionProcessor(self, abs)
-    
-class BuiltinTypesMixin(object):    
+
+class BuiltinTypesMixin(object):
     BuiltinTypeProcessor = default_builtin_processor
-    
-    def __complex__(self):          return self.BuiltinTypeProcessor(self, complex)
-    def __int__(self):              return self.BuiltinTypeProcessor(self, int)
-    def __long__(self):             return self.BuiltinTypeProcessor(self, long)
-    def __float__(self):            return self.BuiltinTypeProcessor(self, float)
+
     def __oct__(self):              return self.BuiltinTypeProcessor(self, oct)
     def __hex__(self):              return self.BuiltinTypeProcessor(self, hex)
 

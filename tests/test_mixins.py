@@ -33,3 +33,16 @@ def test_enumerator_foo():
 class BuiltinOverridesCauseNoExceptions(unittest.TestCase):
     def test_abs(self):
         abs(Value(-2)).should == 2
+
+    def test_int(self):
+        int(Value(2.0)).should == 2
+    
+    def test_float(self):
+        float(Value('2.5')).should == 2.5
+    
+    def test_hex(self):
+        hex(Value(255)).should == '0xff'
+    
+    def test_oct(self):
+        oct(Value(255)).should == '0377'
+
