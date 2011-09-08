@@ -9,6 +9,8 @@ Changelog
  - Added nose plugin to load Spec classes
  - Updated to allow __getitem__ access: my_value.get['key'].should == 'value'
  - Major code refactoring / cleaning
+ - Use repr() instead of str() on generic values to avoid UnicodeEncodeError
+ - BaseValue.instance_of() accepts a tuple of types (like isinstance does)
 
 0.1.1
 ------
