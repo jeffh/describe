@@ -10,12 +10,12 @@ class AssertionCore(object):
             if 'value' not in kwargs:
                 kwargs['value'] = self.value
             if 'value_name' not in kwargs:
-                kwargs['value_name'] = getattr(self.value, '__name__', str(self.value))
+                kwargs['value_name'] = getattr(self.value, '__name__', repr(self.value))
         else:
             if 'value' not in kwargs:
                 kwargs['value'] = repr(self.raw_value)
             if 'value_name' not in kwargs:
-                kwargs['value_name'] = getattr(self.raw_value, '__name__', str(self.raw_value))
+                kwargs['value_name'] = getattr(self.raw_value, '__name__', repr(self.raw_value))
         if 'should' not in kwargs:
             kwargs['should'] = 'should'
         if message is not None:
@@ -39,8 +39,8 @@ class ValueInternals(AssertionCore):
             if self.lazy_eval_error:
                 return "<Value: lazy_evaled(%s) with exceptions>" % self.__value.__name__
             return "<Value: lazy_eval(%s)>" % self.__value.__name__
-        return "<Value: %s>" % ellipses(repr(self.value), self.REPR_MAX_LENGTH)
-
+        return "<Value: %s>" % ellipses(repr(self.__value), self.REPR_MAX_LENGTH)
+        
     @property
     def lazy_eval_error(self):
         "Returns exception that occurred when trying to eval the value. Otherwise returns False."
@@ -182,9 +182,13 @@ class BaseValue(ValueInternals):
             Value(2.2).should.be.type_of(float)
 
         """
+        if isinstance(the_type, tuple):
+            type_names = ', '.join( t.__name__ for t in the_type )
+        else:
+            type_names = the_type.__name__
         self.expect(isinstance(self.value, the_type),
             "%(value)r %(should)s be of type %(name)s instead of %(value_name)s",
-            name=the_type.__name__, value_name=type(self.value).__name__)
+            name=type_names, value_name=type(self.value).__name__)
     type_of = instance_of
 
     def have_attr(self, name):

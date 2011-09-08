@@ -68,7 +68,7 @@ class CollectionMixin(object):
         for k in (key,) + keys:
             try:
                 self.value[k]
-            except IndexError, KeyError:
+            except (IndexError, KeyError):
                 self.expect(False, "%(key)r not found in %(value)r", key=k)
 
     have_key = have_keys
