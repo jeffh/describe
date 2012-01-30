@@ -5,8 +5,12 @@ A `Behavior Driven Development`_ or BDD framework inspired off of RSpec_. The re
 TDD is out of scope of this project. But this framework is simply a way to try and
 encourage me to do more testing.
 
+It is worth noting the `development version`_ breaks the existing API.
+
 .. _Behavior Driven Development: http://en.wikipedia.org/wiki/Behavior_Driven_Development
+.. _BDD: http://en.wikipedia.org/wiki/Behavior_Driven_Development
 .. _RSpec: http://rspec.info/
+.. _development version: https://github.com/jeffh/describe/tarball/dev#egg=describe-dev
 
 Installation
 -------------
@@ -14,7 +18,7 @@ Installation
 To install, use pip or easy_install::
 
   pip install describe
-  
+
 Then you can import it::
 
   from describe import Spec, Value, Mock # classes
@@ -71,28 +75,28 @@ describe.Mock supports a few operations:
 * ``Mock.should_not_access(attr_name)`` - Allows you to set expections of attributes not getting accessed.
 * ``Mock.verify()`` - Verifies all the expectations, throwing AssertionErrors if need be.
 * ``Mock.reset_mock()`` - clears the access log, you should never really use this directly.
- 
+
 All other attributes get directed to the `voidspace mock object`_. A basic example::
 
    # create the mock
    from describe import Mock
    m = Mock()
-   
+
    # set an expectation on what will be performed on the object and it's response
    m.should_access.upper().and_return('FOO')
-   
+
    # run it
    m.upper() # => 'FOO'
-   
+
    # verify that the operations were executed
    m.verify()
-   
+
    # if you want to invoke any operations on the mock object (and not the API), get the
    # voidspace mock object via the mock attribute:
    m.should_access.verify().and_return('bar')
    m.mock.verify() # => 'bar'
    m.verify()
-   
+
 These expectations expect the function prototype you give it::
 
   m.should_access.rjust(5).and_return('     ')
@@ -108,7 +112,7 @@ args.ANYTHING accepts any arguments as valid, including no arguments::
   from describe import args
   m.should_access.rjust(args.ANYTHING).and_return('anything works')
   m.rjust('foo', 'bar') # => 'anything works'
-  
+
 args.ANY_ARG accepts any single argument::
 
   from describe import args
@@ -125,7 +129,7 @@ Other special args include:
 * ``arg.includes_pair(key, value)`` - any argument who has a key and associated value.
 * ``arg.contains(item, *items)`` - any keys or items in the given list or dictionary.
 * ``arg.duck_type(*attributes)`` - any object that has all of the given attributes
- 
+
 You can also set expectations for getter properties::
 
   m.should_access.score.and_return(23)
@@ -178,7 +182,7 @@ Currently Specs inherit unittest.TestCase::
       def it_should_expect_any_arguments(self):
           self.m.should_access.msg(ANYTHING)
           self.m.msg(1,2,3,4,5,6)
-          
+
 Then use the `SpecPlugin`` for nose to run the specs, or run describe.main program.
 
 .. _nose: http://somethingaboutorange.com/mrl/projects/nose/1.0.0/
