@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-__version__, __author__, __author_email__ = "1.0.0", "Jeff Hui", "contrib@jeffhui.net"
+__version__, __author__, __author_email__ = "0.1.2", "Jeff Hui", "contrib@jeffhui.net"
 
 setup(
     name='describe',
