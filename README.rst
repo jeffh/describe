@@ -5,8 +5,11 @@ An experimental BDD_ styled framework inspired off of RSpec_. The reason of BDD 
 TDD is out of scope of this article. But this framework is simply a way to try and
 encourage me to do more testing.
 
+It is worth noting the `development version`_
+
 .. _BDD: http://en.wikipedia.org/wiki/Behavior_Driven_Development
 .. _RSpec: http://rspec.info/
+.. _development version: https://github.com/jeffh/describe/tarball/dev#egg=describe-dev
 
 Installation
 -------------
