@@ -83,7 +83,7 @@ class Counter(object):
     def __init__(self, start=0):
         self.error_message = ''
         self.current = start
-        self.goal = lambda c: c > 0
+        self.goal = None
 
     def set(self, count):
         self.current = count
@@ -122,6 +122,12 @@ class ArgsTable(object):
     def get(self, args, kwargs):
         for matcher, fn, counter in self.matchers:
             if matcher.matches(args, kwargs):
+                return matcher, fn, counter
+        return None, None, None
+
+    def get_by_func(self, func):
+        for matcher, fn, counter in self.matchers:
+            if fn == func:
                 return matcher, fn, counter
         return None, None, None
 
@@ -190,18 +196,20 @@ class ExpectationBuilder(object):
     def build_call(self, args, kwargs):
         self.__type = None
         self._getargtable().add(self.invoke, args, kwargs)
+        self.at_least(1)
         return self
 
     def build_getitem(self, key):
         self.__type = 'getitem'
         self._getargtable().add(self.invoke, (key,), {})
+        self.at_least(1)
         return self
 
     def invoke(self, *args, **kwargs):
         return self.__callable(*args, **kwargs)
 
     def __set_counter_goal(self, goalfn, error_message):
-        matcher, fn, counter = self._getargtable().get(self.invoke)
+        matcher, fn, counter = self._getargtable().get_by_func(self.invoke)
         counter.set_goal(goalfn, error_message)
         return self
 
@@ -238,20 +246,25 @@ DO_NOT_RECORD = (
     'DO_NOT_RECORD', '_create_magic_method', 'with_class_attrs', 'with_attrs',
     '_Stub__record_access', '__name', '_Stub__collection', '_argstable', 'call_args',
     '_getitem_argstable', 'access_history', 'expects', '_Stub__callstub',
-    'verify_expectations', '_Stub__children',
+    'verify_expectations', '_Stub__children', '_Stub__parent', '_Stub__parent_attr',
+    '_Stub__parent_oldvalue', '_Stub__create_stub', '_Stub__name', 'getitems',
 )
 
 
 class Stub(object):
-    def __init__(self, name='stub', calls=None, returns=None, argstable=None, getitem_argstable=None):
+    def __init__(self, name='stub', parent=None, parent_attr=None, parent_old_value=None, argstable=None, getitem_argstable=None):
         # if you add an attribute, include it in DO_NOT_RECORD list
         self.__name = name
         self.__collection = {}
+        self.__parent = parent
+        self.__parent_attr = parent_attr
+        self.__parent_oldvalue = parent_old_value
         self._argstable = argstable or ArgsTable()
         self._getitem_argstable = getitem_argstable or ArgsTable()
         self.__callstub = None
         self.__children = []
-        self.call_args = []
+        self.calls = []
+        self.getitems = []
         self.access_history = []
 
     def verify_expectations(self):
@@ -259,6 +272,20 @@ class Stub(object):
         self._argstable.verify()
         for child_stub in self.__children:
             child_stub.verify_expectations()
+        # clean up
+        if self.__parent:
+            setattr(self.__parent, self.__parent_attr, self.__parent_oldvalue)
+
+    @classmethod
+    def attr(cls, obj, attrname):
+        name = getattr(obj, '__name__', None) or getattr(getattr(obj, '__class__', None), '__name__', None) or ''
+        if name:
+            name = name + '.' + attrname
+        else:
+            name = 'ChildStub'
+        stub = cls(name, parent=obj, parent_attr=attrname, parent_old_value=getattr(obj, attrname))
+        setattr(obj, attrname, stub)
+        return stub
 
     def with_attrs(self, **properties):
         for name, value in properties.items():
@@ -292,7 +319,7 @@ class Stub(object):
         exec('__%s__ = _create_magic_method(%r)' % ('r' + op, 'r' + op))
         exec('__%s__ = _create_magic_method(%r)' % ('i' + op, 'i' + op))
 
-    for op in 'neg pos abs invert enter exit'.split(' '):
+    for op in 'neg pos abs invert enter exit eq ne'.split(' '):
         exec('__%s__ = _create_magic_method(%r)' % (op, op))
 
     def __repr__(self):
@@ -314,6 +341,7 @@ class Stub(object):
         return self.__class__(self.__name + name)
 
     def __getitem__(self, key):
+        self.getitems.append(key)
         try:
             return self._getitem_argstable(key)
         except NoArgMatchError:

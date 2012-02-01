@@ -7,6 +7,37 @@ from describe import flags
 
 
 class DescribeStubIntegratedAPI(TestCase):
+    def test_magic_methods(self):
+        die = Stub()
+        die.__eq__.expects(flags.ANYTHING).and_returns(False)
+        die.__eq__.expects(2).and_returns(True)
+
+        self.assertEqual(die, 2)
+        self.assertFalse(die == 3)
+
+
+    def test_method_count_assertions(self):
+        die = Stub().expects.roll(2).at_least(2).and_returns(True)
+        die.expects.roll(3).at_most(1).and_returns(True)
+        die.expects.roll(4).exactly(3).and_returns(True)
+
+        die.roll(2)
+        die.roll(2)
+        die.roll(3)
+        die.roll(4)
+        die.roll(4)
+        die.roll(4)
+
+        die.verify_expectations()
+
+
+    def test_it_can_expect_calls_with_flags(self):
+        stub = Stub()
+        stub.expects(flags.ANY_ARG).and_returns('foo')
+        self.assertEqual(stub(1), 'foo')
+        self.assertEqual(stub(2), 'foo')
+        stub.verify_expectations()
+
     def test_it_can_expect_calls_without_explicit_returns(self):
         stub = Stub()
         stub.expects()
@@ -60,11 +91,8 @@ class DescribeCounter(TestCase):
         counter.set(4)
         self.assertEqual(counter.current, 4)
 
-    def test_it_defaults_to_verify_count_is_greater_than_zero(self):
+    def test_it_defaults_to_no_goal(self):
         counter = Counter()
-        self.assertFalse(counter.verify())
-
-        counter.increment()
         self.assertTrue(counter.verify())
 
     def test_it_does_not_fail_if_no_goal_is_set(self):
@@ -145,6 +173,15 @@ class DescribeStub(TestCase):
     def assertStub(self, obj):
         self.assertTrue(isinstance(obj, Stub), "Got %r instead of Stub instance" % obj)
 
+    def test_it_should_restore_attribute_after_verifying(self):
+        parent = Mock()
+        oldvalue = parent.foo
+        stub = Stub.attr(parent, 'foo')
+
+        self.assertEqual(parent.foo, stub)
+        stub.verify_expectations()
+        self.assertEqual(parent.foo, oldvalue)
+
     def test_it_should_return_stubs(self):
         stub = Stub()
         self.assertStub(stub.foo)
@@ -174,7 +211,9 @@ class DescribeStub(TestCase):
         self.assertEqual(stub.cake, 'cake')
 
     def test_it_should_accept_assignment_of_class_properties(self):
-        stub = Stub().with_class_attrs(cake='cake', __eq__=lambda s, o: True)
+        stub = Stub().with_class_attrs(
+            roll=lambda s: 4, cake='cake', __eq__=lambda s, o: True)
+        self.assertEqual(stub.roll(), 4)
         self.assertEqual(stub.__class__.cake, 'cake')
         self.assertEqual(stub, None)
 
@@ -271,7 +310,7 @@ class DescribeExpectationBuilderCallCounts(TestCase):
         self.counter = Mock()
 
         self.stub = Mock()
-        self.stub._argstable.get.return_value = (Mock(), Mock(), self.counter)
+        self.stub._argstable.get_by_func.return_value = (Mock(), Mock(), self.counter)
 
         self.subject = ExpectationBuilder(self.stub)
 
@@ -355,6 +394,7 @@ class DescribeExpectationBuilder(TestCase):
     def test_it_should_accept_getitem(self):
         stub = Mock()
         subject = ExpectationBuilder(stub)
+        subject.at_least = Mock()
         subject.build_getitem = Mock()
         subject['foo']
         subject.build_getitem.assert_called_once_with('foo')
@@ -369,6 +409,7 @@ class DescribeExpectationBuilder(TestCase):
     def test_build_call_should_add_matcher(self):
         stub = Mock()
         subject = ExpectationBuilder(stub)
+        subject.at_least = Mock()
         subject.build_call(('foo',), {'bar': 1})
         stub._argstable.add(subject.invoke, ('foo',), {'bar': 1})
 

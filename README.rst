@@ -1,5 +1,6 @@
+############
 Describe
-========
+############
 
 A `Behavior Driven Development`_ or BDD framework inspired off of RSpec_, Jasmine_, Dingus_ and Mote_.
 
@@ -13,8 +14,9 @@ It is worth noting the `development version`_ breaks the existing API.
 .. _Dingus: https://github.com/garybernhardt/dingus
 .. _development version: https://github.com/jeffh/describe/tarball/dev#egg=describe-dev
 
+*************
 Installation
--------------
+*************
 
 To install, use pip_ or easy_install_::
 
@@ -32,11 +34,12 @@ Then you can import it::
 .. _pip: http://www.pip-installer.org/en/latest/index.html
 .. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall
 
+*****
 Usage
-=====
+*****
 
 Quickstart
------------
+==========
 
 The core of describe is the expect object. In previous version, it was known as the Value object::
 
@@ -71,30 +74,136 @@ examples until I get proper documentation::
     with expect.to_raise_error(TypeError('foobar')):
         raise TypeError('foobar')
 
-Mocks and Stubs
------
+Mocks and Stubs (Doubles)
+===============
 
 Mocks are used to abstract out classes that are not being tested. They can customized to return
-specific values to verify the target's class interaction with other classes. They are created
-using the `stub` function::
+specific values to verify the target's class interaction with other classes.
 
-    from describe import stub
+Currently, describe makes no distinction between Mocks and Stubs.
 
-Once imported, you can create stubs. The arguments provide to the stub are the attributes
-of the created object::
+They are created using the `stub` function::
 
-    die = stub(sides=6)
+    from describe import Stub
+
+Once imported, you can create stubs.  Unless otherwise changed, nearly all interactions
+with a stub will return either the same stub instance or a new stub.
+
+Optionally, you can provide a name to the stub of the created object. Use the ``with_attrs``
+method to quickly assign properties::
+
+    die = Stub().with_attrs(sides=6)
     die.sides # => 6
 
-You can pass assign functions and magic methods to these mocks, all these functions
-accept self as the first argument::
+You can use the ``with_class_attrs`` to override magic methods. This is useful if you only
+want to quickly change the way the stub responds to a magic method. Remember that functions
+given must accept self::
 
-    die = stub(roll=lambda s: 4, __eq__=lambda s: True)
+    die = Stub().with_class_attrs(__eq__=lambda s: True)
     die.roll()  # => 4
     die == None # => True
 
+But there are better ways to customize the behavior of most magic methods.
+
+
+Stubbing Attributes
+-------------------
+
+For shorthand, there's an ``attr`` class method with will stub out an attribute of a given
+object and restore it when ``verify_expectations`` is called::
+
+    myobj.myattr = 3
+    stub = Stub.attr(myobj, 'myattr')
+    myobj.myattr # => stub returned by Stub.attr
+    stub.verify_expectations()
+    myobj.myattr # => 3
+
+
+Setting Expectations
+--------------------
+
+Mocks expect a specific set of interactions to take place. We can do this using the
+``expects`` property::
+
+    die = Stub()
+    stub.expects.roll().and_returns(6)
+    die.roll() # => 6
+    die.verify_expectations() # noop
+
+Here, the stub expects the roll method to be called. The verify_expectations method performs
+the assertion that roll was indeed called. If not, an assertion is raised::
+
+    # methods prefixed with 'and_' return the stub.
+    die = Stub().expects.roll().and_returns(6)
+    die.verify_expectations() # raises AssertionError
+
+The ``expects`` property can do index access and invocation::
+
+    die = Stub().expects[4].and_returns(2)
+    die[4] # => 2
+    die.expects('fizz').and_returns('buzz')
+    die('fizz') # => 'buzz'
+
+Magic methods
+---------------
+
+Most magic methods are return stubs, similar to the behavior of Dingus_. You can
+directly access these magic method stubs::
+
+    die = Stub()
+    die.__eq__.expects(2).and_returns(True)
+    die.__eq__.expects(1).and_returns(False)
+    die == 2 # => True
+    die == 1 # => False
+
+The only notable exception are type-specific magic methods, such as
+`__int__` and `__long__`.
+
+
+Returning the Favor
+-------------------
+
+The ``and_returns`` accepts any number of arguments, returning the given values it was
+provided. It repeats the last value indefinitely::
+
+    die = Stub().expects.foo().and_returns(1, 2, 3)
+    die.foo() # => 1
+    die.foo() # => 2
+    die.foo() # => 3
+    die.foo() # => 3
+    # ...
+
+In similar syntax, there are 3 other similar methods for telling the stub how to return
+values:
+
+* ``and_yields(*values)`` - returns a generator, yielding to each value provided.
+* ``and_calls(*functions)`` - returns the value returned by calling each function. The functions
+    accept the same arguments as if they received the call directly.
+* ``and_raises(*errors)`` - raises each error given.
+
+Except for ``and_yields``, all methods repeat the last value given to it.
+
+
+Counting Expectations
+---------------------
+
+Prior to any of the ``and_`` methods, you can also use a quantifier, indicating how many
+times the given method should be called. By default, all expectations set, assume that
+they should be invoked at least once unless otherwise set like this::
+
+    die = Stub().expects.roll(2).at_least(2).and_returns(True)
+    die.expects.roll(3).at_most(1).and_returns(True)
+    die.expects.roll(4).exactly(3).and_returns(True)
+
+    # ... use die ...
+
+    die.verify_expectations()
+
+
 Specs
------
+=====
+
+The examples listed below are not fully implemented yet. Please ignore::
 
     from unittest import TestCase
     class TestCake(TestCase):
