@@ -1,2 +1,0 @@
-Describe Internal API
-********************

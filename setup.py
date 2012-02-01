@@ -1,23 +1,19 @@
 from setuptools import setup, find_packages
 
-__version__, __author__, __author_email__ = "0.1.2", "Jeff Hui", "contrib@jeffhui.net"
+execfile('describe/meta.py')
 
 setup(
     name='describe',
     version=__version__,
-    description='An experimental behavioral framework inspired from rspec.',
+    description='An experimental behavioral framework.',
     long_description=open('README.rst').read(),
     author=__author__,
     author_email=__author_email__,
     url='http://github.com/jeffh/describe/',
-    # The runner hasn't been extensively tested.
-    install_requires=[
-        'nose',
-        'mock',
-    ],
+    install_requires=[],
     entry_points = {
-        'nose.plugins.0.10': ['describe = describe.nose_plugin:SpecPlugin'],
-        #'console_scripts': ['describe = describe:main'],
+        #'nose.plugins.0.10': ['describe = describe.nose_plugin:SpecPlugin'],
+        'console_scripts': ['describe = describe:main'],
     },
     test_suite = 'tests.run',
     packages=find_packages(),

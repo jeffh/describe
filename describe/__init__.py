@@ -1,10 +1,9 @@
-"""A BDD Framework to help you verify your code is doing what you intended to do.
+from describe.meta import *
+from describe.wrappers import Expectation as expect
+from describe.mock import Stub, patch
+from describe.matchers import matcher
 
-.. moduleauthor:: Jeff Hui <contrib@jeffhui.net>
-
-"""
-
-from value import Value
-from mock import Mock, repository
-from mock import args_filter as arg
-from spec import Spec
+def main():
+    from describe.main import main as entry_point
+    import sys
+    sys.exit(entry_point(*sys.argv))

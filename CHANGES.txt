@@ -1,6 +1,15 @@
 Changelog
 ==========
 
+1.0.0 Alpha 1 (Incompatible with v0.1.2)
+-----
+ - Complete rewrite of describe to be more extensible, following closer to jasmine in style.
+ - Uses expect() instead of Value()
+ - Added basic Spec Discover & Runner implementation
+ - Added support for custom matchers
+ - Removed dependency on nose and mock libraries
+ - Added custom stub implementation. Supports mock classes.
+
 0.1.2
 -----
  - Added Mocking API
