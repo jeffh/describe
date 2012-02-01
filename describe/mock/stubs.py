@@ -7,10 +7,12 @@ from describe.mock.consumers import (ValueConsumer, ErrorConsumer, IteratorConsu
 
 
 class NoArgMatchError(Exception):
+    "The error thrown when ArgMatcher fails to match a given set of arguments."
     pass
 
 
 class ArgMatcher(object):
+    "Given an arg filter set, it can determine if various kinds of arguments will match it."
     def __init__(self, args=None, kwargs=None):
         args = tuple(args or ())
         kwargs = dict(kwargs or {})
@@ -80,6 +82,9 @@ class ArgMatcher(object):
 
 
 class Counter(object):
+    """Tracks the number of times a matcher matches an argument. Also stores mechanisms
+    for validating the proper count.
+    """
     def __init__(self, start=0):
         self.error_message = ''
         self.current = start
@@ -149,6 +154,10 @@ class ArgsTable(object):
 
 
 class AttributeArgument(object):
+    """API Interface. Similar to ExpectationBuilder, but accepts any attribute to apply
+    method expectation.
+
+    """
     def __init__(self, stub, attr_builder, item_builder, call_builder):
         self.__stub = stub
         self.__attr_builder = attr_builder
@@ -166,6 +175,7 @@ class AttributeArgument(object):
 
 
 class ExpectationBuilder(object):
+    "API interface. Applies the developer's intend into what works for the stub's ArgMatchers."
     def __init__(self, stub, name=None):
         self.__stub = stub
         self.__name = name

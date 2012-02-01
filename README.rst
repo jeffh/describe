@@ -28,7 +28,7 @@ Or use the latest development version::
 
 Then you can import it::
 
-  from describe import stub, expect # API
+  from describe import Stub, expect # API
   from describe import flags        # submodules
 
 .. _pip: http://www.pip-installer.org/en/latest/index.html
