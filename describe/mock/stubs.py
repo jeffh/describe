@@ -254,7 +254,7 @@ class ExpectationBuilder(object):
 
 DO_NOT_RECORD = (
     'DO_NOT_RECORD', '_create_magic_method', 'with_class_attrs', 'with_attrs',
-    '_Stub__record_access', '__name', '_Stub__collection', '_argstable', 'call_args',
+    '_Stub__record_access', '__name', '_Stub__collection', '_argstable', 'calls',
     '_getitem_argstable', 'access_history', 'expects', '_Stub__callstub',
     'verify_expectations', '_Stub__children', '_Stub__parent', '_Stub__parent_attr',
     '_Stub__parent_oldvalue', '_Stub__create_stub', '_Stub__name', 'getitems',
@@ -378,7 +378,7 @@ class Stub(object):
         #raise AttributeError('%r missing attribute %r' % (self, name))
 
     def __call__(self, *args, **kwargs):
-        self.call_args.append((args, kwargs))
+        self.calls.append((args, kwargs))
         try:
             return self._argstable(*args, **kwargs)
         except NoArgMatchError:

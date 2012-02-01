@@ -113,10 +113,10 @@ class DescribeStubMagicMethods(TestCase):
     def setUp(self):
         self.stub = Stub()
 
-    def assertStubInspect(self, obj, name, call_args):
+    def assertStubInspect(self, obj, name, calls):
         self.assertTrue(isinstance(obj, Stub), "Got %r instead of Stub instance" % obj)
         print getattr(self.stub, name)
-        self.assertEqual(getattr(self.stub, name).call_args, call_args)
+        self.assertEqual(getattr(self.stub, name).calls, calls)
 
     def test_it_should_return_stub_from_operators(self):
         args = [((2,), {})]
@@ -190,13 +190,13 @@ class DescribeStub(TestCase):
         stub = Stub()
         self.assertTrue(stub.foo is stub.foo)
 
-    def test_it_should_record_call_args(self):
+    def test_it_should_record_calls(self):
         stub = Stub()
         r1 = stub()
         r2 = stub('foo')
         r3 = stub(foo='bar')
         self.assertTrue(r1 is r2 is r3)
-        self.assertEqual(stub.call_args, [
+        self.assertEqual(stub.calls, [
             ((), {}),
             (('foo',), {}),
             ((), {'foo': 'bar'}),
@@ -220,7 +220,7 @@ class DescribeStub(TestCase):
     def test_it_should_record_method_invocations(self):
         stub = Stub()
         stub.foo.bar('lol', a=1)
-        self.assertEqual(stub.foo.bar.call_args, [
+        self.assertEqual(stub.foo.bar.calls, [
             (('lol',), {'a': 1}),
         ])
 
