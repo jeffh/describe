@@ -8,7 +8,6 @@ setup(
     description='An experimental behavioral framework.',
     long_description=open('README.rst').read(),
     author=__author__,
-    author_email=__author_email__,
     url='http://github.com/jeffh/describe/',
     install_requires=[],
     entry_points = {
