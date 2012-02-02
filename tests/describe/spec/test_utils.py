@@ -4,8 +4,8 @@ from functools import wraps
 
 from mock import Mock, patch
 
-from describe.spec.utils import LocalsExtractor, tabulate, Replace, Benchmark, CallOnce, \
-        getargspec, func_equal, accepts_arg
+from describe.spec.utils import tabulate, Replace, Benchmark, CallOnce, \
+        getargspec, func_equal, accepts_arg, locals_from_function
 
 
 class DescribeAcceptArgs(TestCase):
@@ -143,6 +143,7 @@ class TestFuncEqual(TestCase):
                 self.bake = roflcopter
 
         self.assertTrue(func_equal(Foo, FooBar))
+        print 'equal'
         self.assertFalse(func_equal(Foo, ABC))
         self.assertFalse(func_equal(Foo, Cake))
 
@@ -180,7 +181,7 @@ class TestTabulate(TestCase):
         self.assertEqual(tabulate('\n\nfoo', times=0), '\n\nfoo')
 
 
-class TestLocalsExtractor(TestCase):
+class TestLocalsFromFunction(TestCase):
     def test_extracts_local_functions_with_invocation(self):
         behavior = 0
         def describe_spec():
@@ -195,8 +196,7 @@ class TestLocalsExtractor(TestCase):
             def it_should_capture_this_method(): pass
             behavior += 1
 
-        fc = LocalsExtractor(describe_spec)
-        fc.functions['it_should_read_submethods']()
+        context = locals_from_function(describe_spec)
         methods = [
             'it_should_read_submethods',
             'before_each',
@@ -206,40 +206,8 @@ class TestLocalsExtractor(TestCase):
             'it_should_capture_this_method',
             'sample_func',
         ]
-        self.assertEqual(set(fc.functions.keys()), set(methods))
+        self.assertEqual(set(context.keys()), set(methods))
         self.assertEqual(behavior, 0)
-
-    def test_extracts_local_functions_recursively(self):
-        called = 0
-        def describe_spec():
-            global called
-            def describe_everything():
-                global called
-                lol = True
-                def it_should_read_submethods(): pass
-                def before_each(): pass
-                def before_all(): pass
-                def sample_func(): pass
-                def after_each(): pass
-                def after_all(): pass
-                def it_should_capture_this_method(): pass
-                called += 1
-            called += 1
-
-        fc = LocalsExtractor(describe_spec)
-        methods = [
-            'describe_everything',
-            'it_should_read_submethods',
-            'before_each',
-            'before_all',
-            'after_each',
-            'after_all',
-            'it_should_capture_this_method',
-            'sample_func',
-        ]
-        self.assertEqual(set(fc.nested_functions.keys()), set(methods))
-        # assert no function invocation
-        self.assertEqual(called, 0)
 
 
 class TestReplace(TestCase):

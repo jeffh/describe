@@ -4,6 +4,72 @@ import inspect
 import time
 from functools import wraps
 
+import byteplay
+
+def fn_returns_locals(f):
+    """Modify the function to do:
+    try:
+        # code
+    finally:
+        return locals()
+
+    This works for us since we don't have to care about what we need to do.
+    Here's from python interpreter::
+
+        >>> def example():
+        ...      try:
+        ...              print 'hello'
+        ...      finally:
+        ...              return dict(locals())
+        ...
+        >>> code = byteplay.Code.from_code(example.func_code)
+        >>> pprint(code.code)
+        [(SetLineno, 2),
+        (SETUP_FINALLY, <byteplay.Label object at 0x100446110>),
+        (SetLineno, 3),
+        (LOAD_CONST, 'hello'),
+        (PRINT_ITEM, None),
+        (PRINT_NEWLINE, None),
+        (POP_BLOCK, None),
+        (LOAD_CONST, None),
+        (<byteplay.Label object at 0x100446110>, None),
+        (SetLineno, 5),
+        (LOAD_GLOBAL, 'dict'),
+        (LOAD_GLOBAL, 'locals'),
+        (CALL_FUNCTION, 0),
+        (CALL_FUNCTION, 1),
+        (RETURN_VALUE, None),
+        (END_FINALLY, None)]
+
+    """
+
+    fcode = f.func_code
+    code = byteplay.Code.from_code(fcode)
+    label = byteplay.Label()
+    code.code = (
+        [
+            (byteplay.SETUP_FINALLY, label)
+        ]
+        + code.code +
+        [
+            (label, None),
+            (byteplay.LOAD_GLOBAL, 'dict'),
+            (byteplay.LOAD_GLOBAL, 'locals'),
+            (byteplay.CALL_FUNCTION, 0),
+            (byteplay.CALL_FUNCTION, 1),
+            (byteplay.RETURN_VALUE, None),
+            (byteplay.END_FINALLY, None),
+        ])
+    # build code object again
+    f.func_code = code.to_code()
+    return f
+
+
+def locals_from_function(fn):
+    localfn = fn_returns_locals(fn)
+    context = localfn()
+    return {name: value for name, value in context.items() if callable(value)}
+
 
 def get_true_function(obj):
     "Returns the actual function and a boolean indicated if this is a method or not."
@@ -23,16 +89,30 @@ def get_true_function(obj):
     raise TypeError("Unknown type of object: %r" % obj)
 
 
-def func_equal(fn1, fn2):
+def func_equal(func1, func2):
     try:
-        fn1, _ = get_true_function(fn1)
-        fn2, _ = get_true_function(fn2)
+        fn1, _ = get_true_function(func1)
+        fn2, _ = get_true_function(func2)
     except TypeError:
         return False
     try:
+        # check existance
         return fn1 and fn2 and (
+            # equal by location
+            (
+                # equal location
+                getattr(fn1, '__module__', object()) == getattr(fn2, '__module__', object()) and
+                getattr(fn1, '__name__', object()) == getattr(fn2, '__name__', object()) and
+                # check function equal original functions (for methods)
+                getattr(fn1, 'im_func', None) == getattr(fn2, 'im_func', None) and
+                # check to make sure we aren't lambdas
+                fn1.__name__ != '<lambda>' != fn2.__name__
+            ) or
+            # equal true functions
             fn1 == fn2 or
+            # equal in function code (like two identical lambdas)
             fn1.func_code == fn2.func_code or
+            # equal by heuristic - everything but variable names
             (
                 fn1.func_code.co_code == fn2.func_code.co_code and
                 fn1.func_code.co_consts == fn2.func_code.co_consts and
@@ -70,7 +150,7 @@ class CallOnce(object):
     "Wraps a function that will invoke it only once. Subsequent calls are silently ignored."
     COPY_FIELDS = ('__doc__', '__name__', '__module__', 'func_name', 'func_code')
     def __init__(self, func, copy=None):
-        self.func = func
+        self.func = func or None
         self.called = False
         self._copy(copy or self.COPY_FIELDS)
 
@@ -96,46 +176,6 @@ class CallOnce(object):
         return "<CallOnce(%r, called=%r)>" % (
             self.func, self.called
         )
-
-
-class LocalsExtractor(object):
-    "Extracts function following a given context"
-    def __init__(self, fn):
-        self.fn = fn
-        self.__functions = None
-
-    def _get_code(self):
-        return dict(inspect.getmembers(self.fn))['func_code']
-
-    def _get_constants(self):
-        return [(c.co_name, c) for c in self._get_code().co_consts if isinstance(c, types.CodeType)]
-
-    def _get_function(self, code):
-        return types.FunctionType(code, self.fn.func_globals)
-
-    def _get_functions(self):
-        obj = {}
-        for name, code in self._get_constants():
-            obj[name] = self._get_function(code)
-        return obj
-
-    @property
-    def functions(self):
-        if self.__functions is None:
-            self.__functions = self._get_functions()
-        return self.__functions
-
-    @property
-    def nested_functions(self):
-        funcs = dict(self.functions)
-        for n, f in self.functions.items():
-            funcs.update(self.__class__(f).nested_functions)
-        return funcs
-
-
-def locals_from_function(fn):
-    return LocalsExtractor(fn).functions
-
 
 def tabulate(string, times=1, indent=4, char=' ', ignore_first=False):
     sb = []

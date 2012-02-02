@@ -23,6 +23,9 @@ class SpecFinder(object):
 
     def extract_examples(self, fn, parents=(), parent_before_each=None, parent_after_each=None):
         local_vars = self.get_vars(fn)
+        # prevent infinite recursion....
+        if fn.__name__ in local_vars and local_vars[fn.__name__] == fn:
+            del local_vars[fn.__name__]
 
         before_each = local_vars.get('before_each')
         after_each = local_vars.get('after_each')

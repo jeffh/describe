@@ -9,7 +9,9 @@ setup(
     long_description=open('README.rst').read(),
     author=__author__,
     url='http://github.com/jeffh/describe/',
-    install_requires=[],
+    install_requires=[
+        'byteplay',
+    ],
     entry_points = {
         #'nose.plugins.0.10': ['describe = describe.nose_plugin:SpecPlugin'],
         'console_scripts': ['describe = describe:main'],

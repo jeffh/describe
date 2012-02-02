@@ -126,6 +126,11 @@ class DescribeSpecFinderNested(TestCase):
         self.maxDiff = None
         # keep it sorted to have an order
         actual = subject.find(m)
+
+        from pprint import pprint
+        pprint(expected)
+        pprint(actual)
+
         self.assertEqual(actual, expected)
 
 
