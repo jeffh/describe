@@ -3,14 +3,15 @@ import sys
 
 from describe.spec.finders import SpecFileFinder, SpecFinder
 from describe.spec.runners import ExampleRunner
-from describe.spec.formatters import StandardResultsFormatter
+from describe.spec.formatters import StandardResultsFormatter, VerboseResultsFormatter
 
 
 class SpecCoordinator(object):
     def __init__(self, file_finder=None, spec_finder=None, formatter=None):
         self.file_finder = file_finder or SpecFileFinder()
         self.spec_finder = spec_finder or SpecFinder()
-        self.formatter = formatter or StandardResultsFormatter()
+        #self.formatter = formatter or StandardResultsFormatter()
+        self.formatter = formatter or VerboseResultsFormatter()
 
     def find_specs(self, directory):
         specs = []

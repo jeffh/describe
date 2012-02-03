@@ -221,6 +221,37 @@ class StandardResultsFormatter(object):
             self.stdout.flush()
 
 
+class VerboseResultsFormatter(StandardResultsFormatter):
+    def _write_example_failed(self, example):
+        self._write('')
+
+    def _write_example_skipped(self, example):
+        self._write('')
+
+    def _write_example_passed(self, example):
+        self._write('')
+
+    def skip_example(self, example):
+        super(VerboseResultsFormatter, self).skip_example(example)
+        print 'skip', example.name
+
+    def start_example_group(self, example):
+        super(VerboseResultsFormatter, self).start_example_group(example)
+        print 'start_group', example.name
+
+    def end_example_group(self, example):
+        super(VerboseResultsFormatter, self).end_example_group(example)
+        print 'end_group', example.name
+
+    def skip_example_group(self, example):
+        super(VerboseResultsFormatter, self).skip_example_group(example)
+        print 'skip_group', example.name
+
+    def record_example(self, example):
+        super(VerboseResultsFormatter, self).record_example(example)
+        print 'record_example', example.name
+
+
 class MinimalResultsFormatter(StandardResultsFormatter):
     "An alternative formatter that reduces as much of its output as possible."
     def __init__(self, stdout=sys.stdout, pass_char='', fail_char='', skip_char=''):

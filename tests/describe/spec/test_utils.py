@@ -1,28 +1,72 @@
+import sys
 from unittest import TestCase
 from StringIO import StringIO
 from functools import wraps
 
 from mock import Mock, patch
 
-from describe.spec.utils import tabulate, Replace, Benchmark, CallOnce, \
-        getargspec, func_equal, accepts_arg, locals_from_function
+from describe.spec.utils import tabulate, Replace, Benchmark, CallOnce, with_metadata, \
+        getargspec, func_equal, accepts_arg, locals_from_function, returns_locals
+
+
+class DescribeFnReturnsLocals(TestCase):
+    def test_it_captures_locals_from_function(self):
+        def foo():
+            a = 2
+            b = 'foo'
+            z = {}
+
+        fn = returns_locals(foo)
+        context = fn()
+        del context['sys']
+        del context['_________describe_exception']
+        self.assertEqual(context, {
+            'a': 2,
+            'b': 'foo',
+            'z': {},
+        })
+
+    def test_it_captures_locals_from_decorated_function(self):
+        def d(name):
+            @with_metadata
+            def decorator(fn):
+                @wraps(fn)
+                def wrapper(*args, **kwargs):
+                    return fn(name, *args, **kwargs)
+                return wrapper
+            return decorator
+
+        @d('lol')
+        def foo(name):
+            a = 'foo'
+            b = 3
+
+        func = returns_locals(foo)
+        context = func()
+        del context['sys']
+        del context['_________describe_exception']
+        self.assertEqual(context, {
+            'a': 'foo',
+            'b': 3,
+            'name': 'lol',
+        })
 
 
 class DescribeAcceptArgs(TestCase):
-    def it_returns_True_for_function_with_one_arg(self):
+    def test_it_returns_True_for_function_with_one_arg(self):
         def foo(a):
             pass
 
         self.assertTrue(accepts_arg(foo))
 
-    def it_returns_True_for_class_method_with_one_arg(self):
+    def test_it_returns_True_for_class_method_with_one_arg(self):
         class Foobar(object):
             def foo(self, a):
                 pass
 
         self.assertTrue(accepts_arg(Foobar().foo))
 
-    def it_returns_False_otherwise(self):
+    def test_it_returns_False_otherwise(self):
         class Foobar(object):
             def foo(self):
                 pass
@@ -33,7 +77,7 @@ class DescribeAcceptArgs(TestCase):
         self.assertFalse(accepts_arg(Foobar().foo))
         self.assertFalse(accepts_arg(foo))
 
-    def it_returns_False_when_non_function(self):
+    def test_it_returns_False_when_non_function(self):
         self.assertFalse(accepts_arg(None))
 
 
@@ -183,9 +227,7 @@ class TestTabulate(TestCase):
 
 class TestLocalsFromFunction(TestCase):
     def test_extracts_local_functions_with_invocation(self):
-        behavior = 0
         def describe_spec():
-            global behavior
             lol = True
             def it_should_read_submethods(): pass
             def before_each(): pass
@@ -194,7 +236,6 @@ class TestLocalsFromFunction(TestCase):
             def after_each(): pass
             def after_all(): pass
             def it_should_capture_this_method(): pass
-            behavior += 1
 
         context = locals_from_function(describe_spec)
         methods = [
@@ -207,10 +248,31 @@ class TestLocalsFromFunction(TestCase):
             'sample_func',
         ]
         self.assertEqual(set(context.keys()), set(methods))
-        self.assertEqual(behavior, 0)
 
+    def test_reraises_any_exceptions_thrown(self):
+        def describe_spec():
+            @does_not_exist
+            def it_should_do_stuff(): pass
+
+        with self.assertRaises(NameError):
+            locals_from_function(describe_spec)
 
 class TestReplace(TestCase):
+    def test_is_a_decorator(self):
+        instance = Mock()
+        state = {'count': 0}
+        def foo(obj):
+            "DocString"
+            self.assertEqual(sys.stdout, instance)
+            self.assertEqual(obj, instance)
+            state['count'] += 1
+            return 'foo'
+
+        wrapped = Replace(sys, 'stdout', instance)(foo)
+        wrapped()
+        self.assertTrue(hasattr(wrapped, '__wraps__'))
+        self.assertEqual(state['count'], 1)
+
     def test_replacement_of_attribute(self):
         import sys
         old = sys.stdout

@@ -2,73 +2,145 @@ import types
 import traceback
 import inspect
 import time
-from functools import wraps
+from functools import wraps, partial
 
 import byteplay
 
-def fn_returns_locals(f):
-    """Modify the function to do:
-    try:
-        # code
-    finally:
-        return locals()
 
-    This works for us since we don't have to care about what we need to do.
-    Here's from python interpreter::
-
-        >>> def example():
-        ...      try:
-        ...              print 'hello'
-        ...      finally:
-        ...              return dict(locals())
-        ...
-        >>> code = byteplay.Code.from_code(example.func_code)
-        >>> pprint(code.code)
-        [(SetLineno, 2),
-        (SETUP_FINALLY, <byteplay.Label object at 0x100446110>),
-        (SetLineno, 3),
-        (LOAD_CONST, 'hello'),
-        (PRINT_ITEM, None),
-        (PRINT_NEWLINE, None),
-        (POP_BLOCK, None),
-        (LOAD_CONST, None),
-        (<byteplay.Label object at 0x100446110>, None),
-        (SetLineno, 5),
-        (LOAD_GLOBAL, 'dict'),
-        (LOAD_GLOBAL, 'locals'),
-        (CALL_FUNCTION, 0),
-        (CALL_FUNCTION, 1),
-        (RETURN_VALUE, None),
-        (END_FINALLY, None)]
-
+def with_metadata(decorator):
+    """Creates a new decorator that records the function metadata on the generated
+    decorated function.
     """
+    @wraps(decorator)
+    def new_decorator(func):
+        decorated = decorator(func)
+        # if the decorator is a "no-op", do nothing
+        if not callable(decorator):
+            return decorated
+        # record data
+        decorated.__decorator__ = decorator
+
+        if isinstance(func, partial):
+            # partials are objects that store the true function somewhere else
+            decorated.__wraps__ = func.keywords['wrapped']
+        else:
+            decorated.__wraps__ = func
+        return decorated
+
+    return new_decorator
+
+
+def returns_locals(func):
+    """Modify the function to do:
+
+        _________describe_exception = None
+        try:
+            # existing code
+        except Exception, e:
+            _________describe_exception = e
+        finally:
+            import sys
+            if _________describe_exception:
+                return sys.exc_info()
+            return locals()
+
+    We can't just return locals(), because exceptions will be absorbed then, but we need
+    to return in the finally block to override any other possible returns the function
+    does.
+    """
+    # we need to "unwrap" decorators. They need to be using the with_metadata
+    # decorator
+    f = func
+    decorators = [f]
+    wraps = getattr(f, '__wraps__', None)
+    while callable(wraps):
+        f = wraps
+        decorators.append(f)
+        wraps = getattr(f, '__wraps__', None)
+
+    decorators.pop() # last function is the true function we're working on
+
+    assert callable(f), "f must be a function"
+
+    # if we already modified this function before, do nothing
+    if getattr(f, '__returns_locals__', None):
+        return (decorators and decorators[0]) or f
 
     fcode = f.func_code
     code = byteplay.Code.from_code(fcode)
-    label = byteplay.Label()
+    except_label, except_if_label = byteplay.Label(), byteplay.Label()
+    finally_label, run_finally_label = byteplay.Label(), byteplay.Label()
+    finally_if_label = byteplay.Label()
+
     code.code = (
         [
-            (byteplay.SETUP_FINALLY, label)
+            (byteplay.LOAD_GLOBAL, 'None'),
+            (byteplay.STORE_FAST, '_________describe_exception'),
+            (byteplay.SETUP_FINALLY, run_finally_label),
+            (byteplay.SETUP_EXCEPT, except_label),
         ]
         + code.code +
         [
-            (label, None),
-            (byteplay.LOAD_GLOBAL, 'dict'),
+            (byteplay.POP_BLOCK, None),
+            (byteplay.JUMP_FORWARD, finally_label),
+            (except_label, None),
+            #(byteplay.SetLineno, 5),
+            (byteplay.DUP_TOP, None),
+            (byteplay.LOAD_GLOBAL, 'Exception'),
+            (byteplay.COMPARE_OP, 'exception match'),
+            (byteplay.POP_JUMP_IF_FALSE, except_if_label),
+            (byteplay.POP_TOP, None),
+            (byteplay.STORE_FAST, 'e'),
+            (byteplay.POP_TOP, None),
+            #(byteplay.SetLineno, 6),
+            (byteplay.LOAD_FAST, 'e'),
+            (byteplay.STORE_FAST, '_________describe_exception'),
+            (byteplay.JUMP_FORWARD, finally_label),
+            (except_if_label, None),
+            (byteplay.END_FINALLY, None),
+            (finally_label, None),
+            (byteplay.POP_BLOCK, None),
+            (byteplay.LOAD_CONST, None),
+            (run_finally_label, None),
+            #(byteplay.SetLineno, 8),
+            (byteplay.LOAD_CONST, -1),
+            (byteplay.LOAD_CONST, None),
+            (byteplay.IMPORT_NAME, 'sys'),
+            (byteplay.STORE_FAST, 'sys'),
+            #(byteplay.SetLineno, 9),
+            (byteplay.LOAD_FAST, '_________describe_exception'),
+            (byteplay.POP_JUMP_IF_FALSE, finally_if_label),
+            #(byteplay.SetLineno, 10),
+            (byteplay.LOAD_FAST, 'sys'),
+            (byteplay.LOAD_ATTR, 'exc_info'),
+            (byteplay.CALL_FUNCTION, 0),
+            (byteplay.RETURN_VALUE, None),
+            (byteplay.JUMP_FORWARD, finally_if_label),
+            (finally_if_label, None),
+            #(byteplay.SetLineno, 11),
             (byteplay.LOAD_GLOBAL, 'locals'),
             (byteplay.CALL_FUNCTION, 0),
-            (byteplay.CALL_FUNCTION, 1),
             (byteplay.RETURN_VALUE, None),
             (byteplay.END_FINALLY, None),
         ])
-    # build code object again
     f.func_code = code.to_code()
-    return f
+
+    # tag the function, to prevent use from modifying it again
+    f.__returns_locals__ = True
+
+    return (decorators and decorators[0]) or f
 
 
 def locals_from_function(fn):
-    localfn = fn_returns_locals(fn)
+    localfn = returns_locals(fn)
     context = localfn()
-    return {name: value for name, value in context.items() if callable(value)}
+    if isinstance(context, dict) and '_________describe_exception' in context:
+        del context['_________describe_exception']
+        del context['sys']
+        return {name: value for name, value in context.items() if callable(value)}
+
+    # else we got an exception
+    raise context[0], context[1], context[2]
 
 
 def get_true_function(obj):
@@ -211,12 +283,14 @@ class Replace(object):
     def __exit__(self, type, info, exception):
         self.stop()
 
-    def __call__(self, fn):
-        @wraps(fn)
-        def decorator(*args, **kwargs):
-            with self as obj:
-                return fn(obj, *args, **kwargs)
-        return decorator
+    def __call__(self, func):
+        def decorator(fn):
+            @wraps(fn)
+            def decorated(*args, **kwargs):
+                with self as obj:
+                    return fn(obj, *args, **kwargs)
+            return decorated
+        return with_metadata(decorator)(func)
 
 
 class Benchmark(object):

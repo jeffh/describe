@@ -1,3 +1,7 @@
+import os
+import sys
+import time
+
 from describe import expect, patch
 
 
@@ -15,7 +19,11 @@ def describe_math_operations():
         #def it_fails():
         #    expect(Foo)
 
-        @patch.all()
-        def it_failed(mod):
-            import time
+        #TODO: print this error???
+        @patch.isolate(time, 'time')
+        #@patch.isolate('time.time')
+        def it_failed():
+            # TODO: this doesn't get run
+            #mod.expects().and_returns(4)
             expect(time.time()) == 4
+

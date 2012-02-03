@@ -2,8 +2,14 @@ import sys
 from types import ModuleType
 from functools import wraps
 
-from describe.spec.utils import Replace
+from describe.spec.utils import Replace, with_metadata
 from describe.mock.stubs import Stub
+
+
+# formatter will pick this up as remove traceback that has this in globals
+# it is in this module because this is one of the  closest to the invocation
+# of the actual specs.
+__DESCRIBE_FRAME_MARK = True
 
 
 class DictReplacement(object):
@@ -37,6 +43,16 @@ class DictReplacement(object):
     def __exit__(self, type, error, traceback):
         self.stop()
 
+    def __call__(self, func):
+        def decorator(fn):
+            @wraps(fn)
+            def decorated(*args, **kwargs):
+                with self:
+                    return fn(*args, **kwargs)
+            return decorated
+
+        return with_metadata(decorator)(func)
+
 
 class IsolateAttribute(object):
     def __init__(self, target, isolate_attr):
@@ -55,13 +71,14 @@ class IsolateAttribute(object):
             setattr(self.target, name, value)
 
     def __call__(self, fn):
-        # TODO: create decorator
-        @wraps(fn)
-        def decorator():
-            with self as mod:
-                return fn(mod)
+        def decorator(func):
+            @wraps(fn)
+            def decorated(*args, **kwargs):
+                with self as mod:
+                    return fn(*args, **kwargs)
+            return decorated
 
-        return decorator
+        return with_metadata(decorator)(fn)
 
     def __enter__(self):
         self.start()
@@ -89,7 +106,7 @@ class Patcher(object):
 
     def isolate(self, modulepath):
         modulepath, obj = modulepath.rsplit('.', 1)
-        # replacing sys.module doesn't affect anything, but we can mutate
+        # replacing sys.module items doesn't affect anything, but we can mutate
         # the module object listed here to affect that given module.
         return IsolateAttribute(sys.modules[modulepath], obj)
 

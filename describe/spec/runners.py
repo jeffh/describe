@@ -11,8 +11,8 @@ from describe.spec.utils import Benchmark, locals_from_function, Replace, CallOn
 
 
 # formatter will pick this up as remove traceback that has this in globals
-# it is in this module because this is closest to the invocation of the
-# actual specs.
+# it is in this module because this is one of the  closest to the invocation
+# of the actual specs.
 __DESCRIBE_FRAME_MARK = True
 
 

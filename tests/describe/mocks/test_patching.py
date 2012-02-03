@@ -3,10 +3,62 @@ from unittest import TestCase
 from mock import Mock, patch
 
 from describe.mock.patching import patch as patcher
+from describe.mock.patching import IsolateAttribute, DictReplacement
+from describe.spec.utils import with_metadata
 from describe.mock.stubs import Stub
 
 import os.path
 
+
+class DescribeDictReplacement(TestCase):
+    def test_it_replaces_dictionary_contents(self):
+        blah = {'a': 1, 'b': 2}
+        with DictReplacement(blah, {'b': 3, 'c': 4}):
+            self.assertEqual(blah, {'b': 3, 'c': 4})
+
+    def test_it_can_be_a_decorator(self):
+        state = {'count': 0}
+        foo = {'a': 1, 'b': 2}
+        def verify():
+            state['count'] += 1
+            self.assertEqual(foo, {'b': 3, 'c': 4})
+
+        wrapped_verify = DictReplacement(foo, {'b': 3, 'c': 4})(verify)
+        wrapped_verify()
+        self.assertTrue(hasattr(wrapped_verify, '__wraps__'))
+        self.assertEqual(state['count'], 1)
+
+
+class DescribeIsolateAttribute(TestCase):
+    def test_it_should_replace_all_but_one_attr(self):
+        with IsolateAttribute(os.path, 'join'):
+            self.assertTrue(isinstance(os.path.abspath, Stub))
+            self.assertTrue(isinstance(os.path.relpath, Stub))
+            self.assertFalse(isinstance(os.path.join, Stub))
+
+    def test_it_should_be_a_decorator(self):
+        state = {'count': 0}
+        def verify():
+            state['count'] += 1
+            self.assertTrue(isinstance(os.path.abspath, Stub))
+            self.assertTrue(isinstance(os.path.relpath, Stub))
+            self.assertFalse(isinstance(os.path.join, Stub))
+
+        wrapped_verify = IsolateAttribute(os.path, 'join')(verify)
+        wrapped_verify()
+        self.assertTrue(hasattr(wrapped_verify, '__wraps__'))
+        self.assertEqual(state['count'], 1)
+
+    def test_it_should_be_visible_by_locals(self):
+        def wrapper():
+            try:
+                @IsolateAttribute(os.path, 'join')
+                def verify():
+                    pass
+            finally:
+                return dict(locals())
+
+        self.assertEqual(wrapper().keys(), ['verify'])
 
 class DescribePatch(TestCase):
     def test_it_isolates_all_other_namespaces(self):
@@ -15,6 +67,19 @@ class DescribePatch(TestCase):
             self.assertTrue(isinstance(os.path.abspath, Stub))
             self.assertTrue(isinstance(os.path.relpath, Stub))
             self.assertFalse(isinstance(os.path.join, Stub))
+
+    def test_it_isolates_as_a_descriptor(self):
+        state = {'called': 0}
+        @patcher.isolate('os.path.join')
+        def verify():
+            self.assertTrue(isinstance(os.path.abspath, Stub))
+            self.assertTrue(isinstance(os.path.relpath, Stub))
+            self.assertFalse(isinstance(os.path.join, Stub))
+            state['called'] += 1
+        verify()
+        self.assertTrue(hasattr(verify, '__wraps__'))
+        self.assertEqual(state['called'], 1)
+
 
     def test_it_patches_dictionaries(self):
         foo = {'baz': 4}
