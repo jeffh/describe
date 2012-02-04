@@ -8,7 +8,7 @@ __credits__ = [
 ]
 
 __license__ = "MIT"
-__version__ = "1.0.0alpha1"
+__version__ = "1.0.0beta1"
 __maintainer__ = "Jeff Hui"
 __email__ = "huij@rpi.edu"
 __status__ = "Development"

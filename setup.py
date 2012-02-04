@@ -20,12 +20,13 @@ setup(
     packages=find_packages(),
     license='MIT',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Software Development :: Testing',
         'Topic :: Software Development :: Libraries',
+        'Topic :: Utilities',
     ],
 )
