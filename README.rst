@@ -174,6 +174,7 @@ Or use ANYTHING as shorthand for ANY_ARGS and ANY_KWARGS::
     die.expects.roll(flags.ANY_ARGS, flags.ANY_KWARGS).and_returns(3)
     die.expects.roll(flags.ANYTHING).and_returns(3)
 
+
 Magic methods
 ---------------
 
