@@ -5,9 +5,30 @@ from functools import wraps
 
 from mock import Mock, patch
 
-from describe.spec.utils import tabulate, Replace, Benchmark, CallOnce, with_metadata, \
-        getargspec, func_equal, accepts_arg, locals_from_function, returns_locals
+from describe.spec.utils import (tabulate, Replace, Benchmark, CallOnce, with_metadata,
+        getargspec, func_equal, accepts_arg, locals_from_function, returns_locals,
+        filter_traceback)
 
+
+class DescribeFilteredTraceback(TestCase):
+    @patch('traceback.format_exception')
+    def it_should_stop_emitting_when_marker_is_found(self, format_exception):
+        error = MagicMock(spec=Exception)
+
+        tb = Mock(spec=TracebackType)
+        tb.__contains__.return_value = False
+        target = tb.tb_next.tb_next.tb_next
+        target.tb_frame.f_globals.__contains__.return_value = True
+
+        format_exception.return_value = 'foo'
+
+        self.assertEqual(filter_traceback(error, tb), "foo")
+        format_exception.assert_called_once_with(Exception, error, target)
+
+    def it_should_return_traceback_if_its_not_a_traceback_type(self):
+        tb = 'bar'
+
+        self.assertEqual(filter_traceback(Mock(), tb), "bar")
 
 class DescribeFnReturnsLocals(TestCase):
     def test_it_captures_locals_from_function(self):

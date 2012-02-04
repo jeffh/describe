@@ -7,6 +7,19 @@ from functools import wraps, partial
 import byteplay
 
 
+def filter_traceback(error, tb, CONST='__DESCRIBE_FRAME_MARK'):
+    """Filtered out all parent stacktraces starting with the given stacktrace that has
+    a given variable name in its globals.
+    """
+    if not isinstance(tb, types.TracebackType):
+        return tb
+    # Skip test runner traceback levels
+    while tb and CONST in tb.tb_frame.f_globals:
+        tb = tb.tb_next
+
+    return ''.join(traceback.format_exception(error.__class__, error, tb))
+
+
 def with_metadata(decorator):
     """Creates a new decorator that records the function metadata on the generated
     decorated function.

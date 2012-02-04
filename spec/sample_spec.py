@@ -19,11 +19,15 @@ def describe_math_operations():
         #def it_fails():
         #    expect(Foo)
 
-        #TODO: print this error???
-        @patch.isolate(time, 'time')
-        #@patch.isolate('time.time')
+        @patch.isolate('time.time')
         def it_failed():
             # TODO: this doesn't get run
             #mod.expects().and_returns(4)
             expect(time.time()) == 4
 
+    def describe_context():
+        def before_each(context):
+            context.value = 2
+
+        def it_should_have_context(context):
+            expect(context.value) == 2

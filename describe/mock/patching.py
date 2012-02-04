@@ -92,17 +92,23 @@ class Patcher(object):
     def __init__(self):
         self.getattr, self.setattr = getattr, setattr
 
-    def object(self, name, attr, value=None):
-        return Replace(name, attr, value or Stub(
-            getattr(name, '__name__', '') + '.' + attr
+    def object(self, obj, attr, value=None):
+        return Replace(obj, attr, value or Stub(
+            getattr(obj, '__name__', '') + '.' + attr
         ))
 
-    def __call__(self, modulepath, value=None):
+    def __call__(self, objectpath, value=None):
+        modulepath, obj = objectpath.rsplit('.', 1)
         mod = __import__(modulepath)
-        return self.object(mod, modulepath.rsplit('.', 1)[-1], value)
+        if not hasattr(mod, obj):
+            raise ImportError("%r does not have %r" % (mod, obj))
+        return self.object(mod, obj, value)
 
     def dict(self, current, new):
         return DictReplacement(current, new)
+
+    def all(self, modulepath):
+        return IsolateAttribute(sys.modules[modulepath], None)
 
     def isolate(self, modulepath):
         modulepath, obj = modulepath.rsplit('.', 1)

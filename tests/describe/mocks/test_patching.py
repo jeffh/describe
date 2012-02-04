@@ -91,10 +91,10 @@ class DescribePatch(TestCase):
         instance = Mock()
         self.assertNotEqual(sys.stdout, instance)
 
-        with patcher('os.path', instance) as path:
+        with patcher('os.getcwd', instance) as path:
             import os
-            self.assertEqual(os.path, instance)
-        self.assertNotEqual(os.path, instance)
+            self.assertEqual(os.getcwd, instance)
+        self.assertNotEqual(os.getcwd, instance)
 
     def test_patching_manually(self):
         instance = Mock()

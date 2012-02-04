@@ -20,7 +20,7 @@ class ValueWrapper(object):
     def __repr__(self):
         if callable(self.raw_value):
             if self.args is None or self.kwargs is None:
-                raise TypeError("expects invocation of callable using the with_args() method.")
+                raise TypeError("expects invocation of callable using the expects property.")
             args = [
                 ', '.join(map(repr, self.args)),
                 ', '.join('%r=%r' % item for item in self.kwargs.items())

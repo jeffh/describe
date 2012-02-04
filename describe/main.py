@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 
-from describe.spec import SpecCoordinator
+from describe.spec.coordinator import SpecCoordinator
 
 
 class Options(object):

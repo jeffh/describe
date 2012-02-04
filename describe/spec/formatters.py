@@ -7,17 +7,7 @@ import sys
 import traceback
 import types
 
-from describe.spec.utils import tabulate
-
-
-def filtered_traceback(error, tb):
-    if not isinstance(tb, types.TracebackType):
-        return tb
-    # Skip test runner traceback levels
-    while tb and '__DESCRIBE_FRAME_MARK' in tb.tb_frame.f_globals:
-        tb = tb.tb_next
-
-    return ''.join(traceback.format_exception(error.__class__, error, tb))
+from describe.spec.utils import tabulate, filter_traceback
 
 
 class ErrorFormat(object):
@@ -59,7 +49,7 @@ class ErrorFormat(object):
     def _traceback(self):
         sb = []
         if self.traceback:
-            sb.append(filtered_traceback(self.error, self.traceback or None))
+            sb.append(filter_traceback(self.error, self.traceback or None))
         if self.stdout:
             sb.append(self._stdout())
         if self.stderr:

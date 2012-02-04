@@ -3,30 +3,9 @@ from unittest import TestCase
 from cStringIO import StringIO
 from mock import Mock, MagicMock, patch
 
-from describe.spec.formatters import StandardResultsFormatter, ErrorFormat, MinimalResultsFormatter, filtered_traceback
+from describe.spec.formatters import StandardResultsFormatter, ErrorFormat, MinimalResultsFormatter
 from describe.spec.containers import Example, ExampleGroup
 from tests.describe.spec.shared_utils import SampleError
-
-
-class DescribeFilteredTraceback(TestCase):
-    @patch('traceback.format_exception')
-    def it_should_stop_emitting_when_marker_is_found(self, format_exception):
-        error = MagicMock(spec=Exception)
-
-        tb = Mock(spec=TracebackType)
-        tb.__contains__.return_value = False
-        target = tb.tb_next.tb_next.tb_next
-        target.tb_frame.f_globals.__contains__.return_value = True
-
-        format_exception.return_value = 'foo'
-
-        self.assertEqual(filtered_traceback(error, tb), "foo")
-        format_exception.assert_called_once_with(Exception, error, target)
-
-    def it_should_return_traceback_if_its_not_a_traceback_type(self):
-        tb = 'bar'
-
-        self.assertEqual(filtered_traceback(Mock(), tb), "bar")
 
 
 def set_examples(r, passed, skipped=0, errors=[]):

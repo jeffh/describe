@@ -22,14 +22,15 @@ To install, use pip_ or easy_install_::
 
     pip install describe
 
-Or use the latest development version::
+Or use the latest `development version`_::
 
     pip install describe==dev
 
 Then you can import it::
 
-  from describe import Stub, expect # API
-  from describe import flags        # submodules
+  from describe import Stub, expect  # Primary features
+  from describe import flags         # Argument matching
+  from describe import with_metadata # Minor feature
 
 .. _pip: http://www.pip-installer.org/en/latest/index.html
 .. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall
@@ -144,6 +145,35 @@ The ``expects`` property can do index access and invocation::
     die.expects('fizz').and_returns('buzz')
     die('fizz') # => 'buzz'
 
+Argument Filtering Expectation
+------------------------------
+
+It is also possible to expect types of incoming values::
+
+    from describe import flags
+
+    die = Stub()
+    die.expects.roll(flags.ANY_ARG).and_returns(3)
+    die.roll(1) # => 3
+    die.roll(2) # => 3
+    die.roll(1, 2) # => stub instance
+
+This is particularly useful for matching variable arguments or keyword arguments::
+
+    from describe import flags
+
+    die = Stub()
+    die.expects.roll(flags.ANY_ARGS, flags.ANY_KWARGS).and_returns(3)
+    die.roll(3, 4, 5, 6) # => 3
+    die.roll(foo='bar') # => 3
+    die.roll('the cake', is_a='lie') # => 3
+
+Or use ANYTHING as shorthand for ANY_ARGS and ANY_KWARGS::
+
+    # both lines are equivalent
+    die.expects.roll(flags.ANY_ARGS, flags.ANY_KWARGS).and_returns(3)
+    die.expects.roll(flags.ANYTHING).and_returns(3)
+
 Magic methods
 ---------------
 
@@ -200,24 +230,166 @@ they should be invoked at least once unless otherwise set like this::
     die.verify_expectations()
 
 
+Convenience Methods
+-------------------
+
+In many scenarios, you need to patch objects from existing libraries. This can be prone
+to error, as you need to ensure restoration after the spec runs. For convenience,
+Describe provides a set of functions to monkey-patch existing objects: returning
+Stub instead of their normal value.
+
+Patching is similar to Mock_ in design, but also with isolation patching offered in
+Mote_.
+
+All patching is done from the patch object::
+
+    from describe import patch
+
+For example, we can patch standard out::
+
+    # nothing actually goes to console
+    with patch('sys.stdout'):
+        print "hello world"
+
+patch returns the Stub instance of the patched object, which you can use::
+
+    with patch('os.getcwd') as getcwd:
+        import os
+        getcwd().expects().and_returns('foo')
+        expect(os.getcwd()) == 'foo'
+
+Alternatively, you can pass any value for the patch to replace with, instead of the
+a stub instance::
+
+    with patch('os.getcwd', lambda: 'lol'):
+        import os
+        expect(os.getcwd()) == 'lol'
+
+If we're defining a function (see Specs section), we can use it as a decorator, the decorator
+will pass the stub instance as the wrapped function's first argument::
+
+    @patch('os.getcwd')
+    def it_is_patched(getcwd):
+        import os
+        getcwd().expects().and_returns('foo')
+        expect(os.getcwd()) == 'foo'
+
+If the module exists in the namespace already, you can patch an attribute by it's object::
+
+    import os
+    @patch.object(os, 'getcwd')
+    def it_is_also_patched(getcwd):
+        getcwd().expects().and_returns('foo')
+        expect(os.getcwd()) == 'foo'
+
+Like Mock_, temporarily mutating a dictionary-like object is also possible::
+
+    import os
+    @patch.dict(os.environ, {'foo': 'bar'})
+    def it_replaces_dict():
+        expect(os.environ) == {'foo': 'bar'}
+
+
+.. _Mock: http://www.voidspace.org.uk/python/mock/patch.html
+.. _Mote: https://github.com/garybernhardt/mote
+
 Specs
 =====
 
-The examples listed below are not fully implemented yet. Please ignore::
+Of course, where are we defining these? In spec files of course! Currently describe
+comes with one command, aptly named 'describe'. It simply runs all specs it can find
+from the current working directory.
 
+The describe command makes no assumptions on where the spec files. It simply looks for
+spec files that end in '_spec.py'.
+
+The simpliest example is to compare to how python's unittest_ library does it::
+
+    # unittest
     from unittest import TestCase
-    class TestCake(TestCase):
-        def test_it_should_be_tasty(self):
-            # test code
+    class DescribeCake(TestCase):
+        def setUp(self):
+            # before each test
 
+        def tearDown(self):
+            # after each test
+
+        def test_it_should_be_tasty(self):
+            # assertions for a test
+
+    # describe
     def describe_cake():
         def before_each(self):
-            self.cake =Cake()
+            # before each spec
 
-        def describe_blue_cake():
-            def before_each(self):
-                self.cake.color = 'blue'
+        def after_each(self):
+            # after each spec
 
-            def it_should_be_tasty(self):
-                self.cake.foo()
-                # test code
+        def it_should_be_tasty(self):
+            # test code
+
+In addition to before_each and after_each, there is before_all and after_all if you
+prefer to run code before and after the entire group / context is executed.
+
+'describe_' definitions can be nested. Alternatively, the 'context_' prefix can
+be used instead::
+
+    def describe_cake():
+        def describe_color():
+            def it_is_white():
+                pass
+
+        def context_ice_cream_cake():
+            def it_is_cold():
+                pass
+
+Caveats / Gotchas
+-----------------
+
+Based on the current implementation details. Describe uses some evil magic to extract
+scopes from functions. The one problem is that decorates need to attach some extra
+metadata to the function it returns. Because of this, custom decorators on test
+functions will cause Describe not to pick these up::
+
+    from functools import wraps
+    def mydecorator(fn):
+        @wraps(fn)
+        def wrapper():
+            return fn('myname')
+        return wrapper
+
+    def describe_example():
+        # it_should_say_my_name can't run correctly
+        @mydecorator
+        def it_should_say_my_name(name):
+            expect(name) == 'myname'
+
+To resolve this, use the with_metadata decorator on the target decorator::
+
+    from describe import with_metadata
+    from functools import wraps
+
+    def mydecorator(fn):
+        @with_metadata
+        @wraps(fn)
+        def wrapper():
+            return fn('myname')
+        return wrapper
+
+    def describe_example():
+        # properly runs
+        @mydecorator
+        def it_should_say_my_name(name):
+            expect(name) == 'myname'
+
+The with_metadata decorator simply attaches 2 attributes to the
+resulting function produced by the target decorator:
+
+* __decorator__ - The decorator it wraps
+* __wraps__ - The function being wrapped by the given decorator
+
+These two pieces of data are used by describe to find the original function
+being decorated.
+
+.. _unittest: http://docs.python.org/library/unittest.html
+
