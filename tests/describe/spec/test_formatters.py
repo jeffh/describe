@@ -32,18 +32,18 @@ class DescribeErrorFormat(TestCase):
         )
 
         output = error.format_with_parent_names("%(name)s:\n%(traceback)s\n")
-        self.assertMultiLineEqual(output, """describe_cake
-    context_color
-        It should do stuff:
+        self.assertMultiLineEqual(output, """describe cake
+    context color
+        it should do stuff:
             Traceback
 """)
 
     def test_it_outputs_human_readable_string(self):
         error = ErrorFormat(
-            'It should do stuff', AssertionError('Expected 2 to be 1'), 'Traceback'
+            'it should do stuff', AssertionError('Expected 2 to be 1'), 'Traceback'
         )
 
-        self.assertMultiLineEqual(str(error), """It should do stuff:
+        self.assertMultiLineEqual(str(error), """it should do stuff:
     Traceback
 """)
 
@@ -52,17 +52,17 @@ class DescribeErrorFormat(TestCase):
             'It should do stuff', TypeError('Expected 2 to be 1'), 'Traceback'
         )
 
-        self.assertMultiLineEqual(str(error), """It should do stuff:
+        self.assertMultiLineEqual(str(error), """it should do stuff:
     Traceback
 """)
 
     def test_it_outputs_stdout_if_provided(self):
         error = ErrorFormat(
-            'It should do stuff', TypeError('Expected 2 to be 1'), 'Traceback',
+            'it should do stuff', TypeError('Expected 2 to be 1'), 'Traceback',
             stdout='foobar\n',
         )
 
-        self.assertMultiLineEqual(str(error), """It should do stuff:
+        self.assertMultiLineEqual(str(error), """it should do stuff:
     Traceback
 
         -------------------->> from stdout <<--------------------
@@ -77,7 +77,7 @@ class DescribeErrorFormat(TestCase):
             stderr='foobar\n',
         )
 
-        self.assertMultiLineEqual(str(error), """It should do stuff:
+        self.assertMultiLineEqual(str(error), """it should do stuff:
     TypeError: Expected 2 to be 1.
 
         -------------------->> from stderr <<--------------------
@@ -92,7 +92,7 @@ class DescribeErrorFormat(TestCase):
             stdout='foobar\n', stderr='lol\n',
         )
 
-        self.assertMultiLineEqual(str(error), """It should do stuff:
+        self.assertMultiLineEqual(str(error), """it should do stuff:
     TypeError: Expected 2 to be 1.
 
         -------------------->> from stdout <<--------------------
@@ -116,8 +116,8 @@ class DescribeStandardResultsFormatter(TestCase):
     def test_it_asserts_groups_are_popped_in_reverse_ordered_they_were_added(self):
         formatter = Mock()
 
-        example1 = ExampleGroup(None, None, None, (1, 2, 3))
-        example2 = ExampleGroup(None, None, None, (2, 3, 4))
+        example1 = ExampleGroup(None, None, None, examples=(1, 2, 3))
+        example2 = ExampleGroup(None, None, None, examples=(2, 3, 4))
 
         subject = StandardResultsFormatter()
         subject.start_example_group(example1)

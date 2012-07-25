@@ -31,7 +31,7 @@ class DescribeSpecCoordinator(TestCase):
     @patch('describe.spec.coordinator.ExampleRunner')
     def test_executes_spec(self, runner):
         file_finder, spec_finder, formatter  = Mock(), Mock(), Mock()
-        example_group = ExampleGroup(examples=[
+        example_group = ExampleGroup('group', examples=[
             Example('foobar'),
         ])
         instance = runner.return_value = Mock()

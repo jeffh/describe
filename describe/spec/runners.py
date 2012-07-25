@@ -6,14 +6,9 @@ from cStringIO import StringIO
 
 from describe.mock.registry import StubRegistry
 from describe.spec.containers  import Context, ExampleGroup, Example
-from describe.spec.utils import Benchmark, locals_from_function, Replace, CallOnce, \
+from describe.spec.utils import Benchmark, Replace, CallOnce, \
         accepts_arg, get_true_function, func_equal, tabulate, NOOP
 
-
-# formatter will pick this up as remove traceback that has this in globals
-# it is in this module because this is one of the  closest to the invocation
-# of the actual specs.
-__DESCRIBE_FRAME_MARK = True
 
 
 class ExampleRunner(object):
@@ -25,10 +20,7 @@ class ExampleRunner(object):
         return "ExampleRunner(%r, %r)" % (self.example, self.formatter)
 
     def should_skip(self):
-        if not callable(self.example.testfn):
-            return False
-        fn, _ = get_true_function(self.example.testfn)
-        return fn.func_code.co_code == NOOP.func_code.co_code
+        return (not callable(self.example.testfn) and not len(self.example))
 
     def execute(self, context=None, stdout=None, stderr=None):
         """Does all the work of running an example.
@@ -38,7 +30,7 @@ class ExampleRunner(object):
         - capturing stdout & stderr
         - execute before functions
         - run example, catching any exceptions
-        - execute after functiosn
+        - execute after functions
         - record the results & timings to formatter and original example object
         """
         total_benchmark = Benchmark()
@@ -78,8 +70,8 @@ class ExampleRunner(object):
         self.example.traceback = ''
         # inject function contexts from parent functions
         c = Context(parent=self.context)
-        for parent in reversed(self.example.parents):
-            c._update_properties(locals_from_function(parent))
+        #for parent in reversed(self.example.parents):
+        #    c._update_properties(locals_from_function(parent))
         self.context = c
         self.example.before(self.context)
 

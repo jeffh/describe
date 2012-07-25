@@ -4,30 +4,31 @@ import time
 
 from describe import expect, patch
 
-
-def describe_math_operations():
-    def it_should_know_addition():
+class DescribeMathOperations:
+    def it_should_know_addition(self):
         expect(1 + 1) == 2
 
-    def it_should_know_subtraction():
+    def it_should_know_subtraction(self):
         expect(1 - 1) == 0
 
-    def describe_order_of_operations():
-        def it_should_be_multiplication_before_addition():
+    class ContextOrderOfOperations:
+        def it_should_be_multiplication_before_addition(self):
             expect(2 * 2 - 1) == 3
+            expect(2 + 2) == 6
 
         #def it_fails():
         #    expect(Foo)
 
-        @patch.isolate('time.time')
-        def it_failed():
+        @patch('time.time')
+        def it_failed(mod, c):
             # TODO: this doesn't get run
-            #mod.expects().and_returns(4)
+            mod.expects().and_returns(4)
             expect(time.time()) == 4
 
-    def describe_context():
-        def before_each(context):
-            context.value = 2
+    class DescribeContext:
+        def before_each(self):
+            self.value = 2
 
-        def it_should_have_context(context):
-            expect(context.value) == 2
+        def it_should_have_context(self):
+            expect(self.value) == 2
+

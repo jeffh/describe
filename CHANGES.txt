@@ -1,6 +1,12 @@
 Changelog
 ==========
 
+1.0.0 Beta 3
+-----
+ - Reverted back to traditional spec helper style
+ - Removed byteplay dependency
+ - Removed isolation patching API.
+
 1.0.0 Beta 2
 -----
  - Fixed Spec runner implementation.

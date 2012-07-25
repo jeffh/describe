@@ -80,6 +80,7 @@ class TestMethodMatchersOnExpectation(TestCase):
         expect(dict(a=1, b=2, c=3)).to.have_subset(dict(a=1, b=2))
 
     def test_expect_to_have_attr(self):
+        print expect(dict).to
         expect(dict()).to.have_attr('keys')
 
     def test_expect_to_be_callable(self):
@@ -98,7 +99,7 @@ class TestInvocationExpectation(TestCase):
     def test_expect_type_error_when_forgetting_invocation_for_raises_exception(self):
         def runner():
             raise IndexError()
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AssertionError):
             expect(runner).to.raise_error(IndexError)
 
     def test_expect_with_block_to_raise_error(self):

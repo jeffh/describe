@@ -319,78 +319,27 @@ The simpliest example is to compare to how python's unittest_ library does it::
             # assertions for a test
 
     # describe
-    def describe_cake():
-        def before_each(self):
-            # before each spec
+    class DescribeCake:
+        def before_each(s, context):
+            # before each example
 
-        def after_each(self):
-            # after each spec
+        def after_each(s, context):
+            # after each example
 
-        def it_should_be_tasty(self):
+        def it_should_be_tasty(s, context):
             # test code
 
 In addition to before_each and after_each, there is before_all and after_all if you
 prefer to run code before and after the entire group / context is executed.
 
-'describe_' definitions can be nested. Alternatively, the 'context_' prefix can
+'Describe' definitions can be nested. Alternatively, the 'Context' prefix can
 be used instead::
 
-    def describe_cake():
-        def describe_color():
-            def it_is_white():
-                pass
-
-        def context_ice_cream_cake():
-            def it_is_cold():
-                pass
-
-Caveats / Gotchas
------------------
-
-Based on the current implementation details. Describe uses some evil magic to extract
-scopes from functions. The one problem is that decorates need to attach some extra
-metadata to the function it returns. Because of this, custom decorators on test
-functions will cause Describe not to pick these up::
-
-    from functools import wraps
-    def mydecorator(fn):
-        @wraps(fn)
-        def wrapper():
-            return fn('myname')
-        return wrapper
-
-    def describe_example():
-        # it_should_say_my_name can't run correctly
-        @mydecorator
-        def it_should_say_my_name(name):
-            expect(name) == 'myname'
-
-To resolve this, use the with_metadata decorator on the target decorator::
-
-    from describe import with_metadata
-    from functools import wraps
-
-    def mydecorator(fn):
-        @with_metadata
-        @wraps(fn)
-        def wrapper():
-            return fn('myname')
-        return wrapper
-
-    def describe_example():
-        # properly runs
-        @mydecorator
-        def it_should_say_my_name(name):
-            expect(name) == 'myname'
-
-The with_metadata decorator simply attaches 2 attributes to the
-resulting function produced by the target decorator:
-
-* __decorator__ - The decorator it wraps
-* __wraps__ - The function being wrapped by the given decorator
-
-These two pieces of data are used by describe to find the original function
-being decorated.
+    # describe
+    class DescribeCake:
+        class ContextColor:
+            def it_is_white(s, context):
+                # test code
 
 .. _unittest: http://docs.python.org/library/unittest.html
 

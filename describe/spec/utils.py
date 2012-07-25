@@ -4,20 +4,28 @@ import inspect
 import time
 from functools import wraps, partial
 
-import byteplay
 
+CURRENT_PACAKGE = __package__.split('.', 1)[0]
 
-def filter_traceback(error, tb, CONST='__DESCRIBE_FRAME_MARK'):
+def filter_traceback(error, tb, CONST=CURRENT_PACAKGE):
     """Filtered out all parent stacktraces starting with the given stacktrace that has
     a given variable name in its globals.
     """
     if not isinstance(tb, types.TracebackType):
         return tb
-    # Skip test runner traceback levels
-    while tb and CONST in tb.tb_frame.f_globals:
-        tb = tb.tb_next
 
-    return ''.join(traceback.format_exception(error.__class__, error, tb))
+    def in_namespace(n):
+        return n.startswith(CONST + '.') or n == CONST
+    # Skip test runner traceback levels
+    while tb and in_namespace(tb.tb_frame.f_globals['__package__']):
+        tb = tb.tb_next
+    starting_tb = tb
+    limit = 0
+    while tb and not in_namespace(tb.tb_frame.f_globals['__package__']):
+        tb = tb.tb_next
+        limit += 1
+
+    return ''.join(traceback.format_exception(error.__class__, error, starting_tb, limit))
 
 
 def with_metadata(decorator):
@@ -43,105 +51,105 @@ def with_metadata(decorator):
     return new_decorator
 
 
-def returns_locals(func):
-    """Modify the function to do:
+# def returns_locals(func):
+#     """Modify the function to do:
 
-        _________describe_exception = None
-        try:
-            # existing code
-        except Exception, e:
-            _________describe_exception = e
-        finally:
-            import sys
-            if _________describe_exception:
-                return sys.exc_info()
-            return locals()
+#         _________describe_exception = None
+#         try:
+#             # existing code
+#         except Exception, e:
+#             _________describe_exception = e
+#         finally:
+#             import sys
+#             if _________describe_exception:
+#                 return sys.exc_info()
+#             return locals()
 
-    We can't just return locals(), because exceptions will be absorbed then, but we need
-    to return in the finally block to override any other possible returns the function
-    does.
-    """
-    # we need to "unwrap" decorators. They need to be using the with_metadata
-    # decorator
-    f = func
-    decorators = [f]
-    wraps = getattr(f, '__wraps__', None)
-    while callable(wraps):
-        f = wraps
-        decorators.append(f)
-        wraps = getattr(f, '__wraps__', None)
+#     We can't just return locals(), because exceptions will be absorbed then, but we need
+#     to return in the finally block to override any other possible returns the function
+#     does.
+#     """
+#     # we need to "unwrap" decorators. They need to be using the with_metadata
+#     # decorator
+#     f = func
+#     decorators = [f]
+#     wraps = getattr(f, '__wraps__', None)
+#     while callable(wraps):
+#         f = wraps
+#         decorators.append(f)
+#         wraps = getattr(f, '__wraps__', None)
 
-    decorators.pop() # last function is the true function we're working on
+#     decorators.pop() # last function is the true function we're working on
 
-    assert callable(f), "f must be a function"
+#     assert callable(f), "f must be a function"
 
-    # if we already modified this function before, do nothing
-    if getattr(f, '__returns_locals__', None):
-        return (decorators and decorators[0]) or f
+#     # if we already modified this function before, do nothing
+#     if getattr(f, '__returns_locals__', None):
+#         return (decorators and decorators[0]) or f
 
-    fcode = f.func_code
-    code = byteplay.Code.from_code(fcode)
-    except_label, except_if_label = byteplay.Label(), byteplay.Label()
-    finally_label, run_finally_label = byteplay.Label(), byteplay.Label()
-    finally_if_label = byteplay.Label()
+#     fcode = f.func_code
+#     code = byteplay.Code.from_code(fcode)
+#     except_label, except_if_label = byteplay.Label(), byteplay.Label()
+#     finally_label, run_finally_label = byteplay.Label(), byteplay.Label()
+#     finally_if_label = byteplay.Label()
 
-    code.code = (
-        [
-            (byteplay.LOAD_GLOBAL, 'None'),
-            (byteplay.STORE_FAST, '_________describe_exception'),
-            (byteplay.SETUP_FINALLY, run_finally_label),
-            (byteplay.SETUP_EXCEPT, except_label),
-        ]
-        + code.code +
-        [
-            (byteplay.POP_BLOCK, None),
-            (byteplay.JUMP_FORWARD, finally_label),
-            (except_label, None),
-            #(byteplay.SetLineno, 5),
-            (byteplay.DUP_TOP, None),
-            (byteplay.LOAD_GLOBAL, 'Exception'),
-            (byteplay.COMPARE_OP, 'exception match'),
-            (byteplay.POP_JUMP_IF_FALSE, except_if_label),
-            (byteplay.POP_TOP, None),
-            (byteplay.STORE_FAST, 'e'),
-            (byteplay.POP_TOP, None),
-            #(byteplay.SetLineno, 6),
-            (byteplay.LOAD_FAST, 'e'),
-            (byteplay.STORE_FAST, '_________describe_exception'),
-            (byteplay.JUMP_FORWARD, finally_label),
-            (except_if_label, None),
-            (byteplay.END_FINALLY, None),
-            (finally_label, None),
-            (byteplay.POP_BLOCK, None),
-            (byteplay.LOAD_CONST, None),
-            (run_finally_label, None),
-            #(byteplay.SetLineno, 8),
-            (byteplay.LOAD_CONST, -1),
-            (byteplay.LOAD_CONST, None),
-            (byteplay.IMPORT_NAME, 'sys'),
-            (byteplay.STORE_FAST, 'sys'),
-            #(byteplay.SetLineno, 9),
-            (byteplay.LOAD_FAST, '_________describe_exception'),
-            (byteplay.POP_JUMP_IF_FALSE, finally_if_label),
-            #(byteplay.SetLineno, 10),
-            (byteplay.LOAD_FAST, 'sys'),
-            (byteplay.LOAD_ATTR, 'exc_info'),
-            (byteplay.CALL_FUNCTION, 0),
-            (byteplay.RETURN_VALUE, None),
-            (byteplay.JUMP_FORWARD, finally_if_label),
-            (finally_if_label, None),
-            #(byteplay.SetLineno, 11),
-            (byteplay.LOAD_GLOBAL, 'locals'),
-            (byteplay.CALL_FUNCTION, 0),
-            (byteplay.RETURN_VALUE, None),
-            (byteplay.END_FINALLY, None),
-        ])
-    f.func_code = code.to_code()
+#     code.code = (
+#         [
+#             (byteplay.LOAD_GLOBAL, 'None'),
+#             (byteplay.STORE_FAST, '_________describe_exception'),
+#             (byteplay.SETUP_FINALLY, run_finally_label),
+#             (byteplay.SETUP_EXCEPT, except_label),
+#         ]
+#         + code.code +
+#         [
+#             (byteplay.POP_BLOCK, None),
+#             (byteplay.JUMP_FORWARD, finally_label),
+#             (except_label, None),
+#             #(byteplay.SetLineno, 5),
+#             (byteplay.DUP_TOP, None),
+#             (byteplay.LOAD_GLOBAL, 'Exception'),
+#             (byteplay.COMPARE_OP, 'exception match'),
+#             (byteplay.POP_JUMP_IF_FALSE, except_if_label),
+#             (byteplay.POP_TOP, None),
+#             (byteplay.STORE_FAST, 'e'),
+#             (byteplay.POP_TOP, None),
+#             #(byteplay.SetLineno, 6),
+#             (byteplay.LOAD_FAST, 'e'),
+#             (byteplay.STORE_FAST, '_________describe_exception'),
+#             (byteplay.JUMP_FORWARD, finally_label),
+#             (except_if_label, None),
+#             (byteplay.END_FINALLY, None),
+#             (finally_label, None),
+#             (byteplay.POP_BLOCK, None),
+#             (byteplay.LOAD_CONST, None),
+#             (run_finally_label, None),
+#             #(byteplay.SetLineno, 8),
+#             (byteplay.LOAD_CONST, -1),
+#             (byteplay.LOAD_CONST, None),
+#             (byteplay.IMPORT_NAME, 'sys'),
+#             (byteplay.STORE_FAST, 'sys'),
+#             #(byteplay.SetLineno, 9),
+#             (byteplay.LOAD_FAST, '_________describe_exception'),
+#             (byteplay.POP_JUMP_IF_FALSE, finally_if_label),
+#             #(byteplay.SetLineno, 10),
+#             (byteplay.LOAD_FAST, 'sys'),
+#             (byteplay.LOAD_ATTR, 'exc_info'),
+#             (byteplay.CALL_FUNCTION, 0),
+#             (byteplay.RETURN_VALUE, None),
+#             (byteplay.JUMP_FORWARD, finally_if_label),
+#             (finally_if_label, None),
+#             #(byteplay.SetLineno, 11),
+#             (byteplay.LOAD_GLOBAL, 'locals'),
+#             (byteplay.CALL_FUNCTION, 0),
+#             (byteplay.RETURN_VALUE, None),
+#             (byteplay.END_FINALLY, None),
+#         ])
+#     f.func_code = code.to_code()
 
-    # tag the function, to prevent use from modifying it again
-    f.__returns_locals__ = True
+#     # tag the function, to prevent use from modifying it again
+#     f.__returns_locals__ = True
 
-    return (decorators and decorators[0]) or f
+#     return (decorators and decorators[0]) or f
 
 
 def locals_from_function(fn):
@@ -166,7 +174,7 @@ def get_true_function(obj):
     if hasattr(obj, 'im_func'):
         return obj.im_func, True
     if inspect.isclass(obj):
-        return obj.__init__, True
+        return getattr(obj, '__init__', None), True
     if isinstance(obj, object):
         if hasattr(obj, 'func'):
             return get_true_function(obj.func)

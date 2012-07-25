@@ -50,7 +50,6 @@ class Context(object):
         self._items[name] = value
 
     def __getattr__(self, name):
-        print name
         if name not in self._properties and self._parent:
             return getattr(self._parent, name)
         return self._properties[name]
@@ -134,7 +133,7 @@ class Example(object):
         self.testfn = testfn
         self._before = self._filter_callables(before)
         self._after = self._filter_callables(after)
-        self.parents = parents or ()
+        self.parents = tuple(parents or ())
         self.traceback = traceback
         self.error = error
         self.user_time = user_time
@@ -152,15 +151,19 @@ class Example(object):
 
 
     def __repr__(self):
-        return "%s(%r, %r, %r, %r)" % (
-            self.__class__.__name__, self.testfn, self._before, self._after, self.parents
-        )
+        return '%s(%s, \n%r)' % (self.__class__.__name__, self.name, self.testfn)
+        #return "%s(%r, %r, %r, %r)" % (
+        #    self.__class__.__name__, self.testfn, self._before, self._after, self.parents
+        #)
 
     def __eq__(self, other):
-        return self.testfn and other.testfn and func_equal(self.testfn, other.testfn) and \
-            (self._before == other._before or all(func_equal(a, b) for a, b in izip_longest(self._before, other._before))) and \
-            (self._after == other._after or all(func_equal(a, b) for a, b in izip_longest(self._after, other._after))) and \
-            (self.parents == other.parents or all(func_equal(a, b) for a, b in izip_longest(self.parents, other.parents)))
+        return self.testfn.__module__ == other.testfn.__module__ and self.testfn.__name__ == other.testfn.__name__
+
+    def __nonzero__(self):
+        return 1
+
+    def __len__(self):
+        return 0
 
     def before(self, context):
         "Invokes all before functions with context passed to them."
@@ -200,11 +203,11 @@ class ExampleGroupTestSuite(TestSuite):
 
 class ExampleGroup(Example):
     "Represents a collection of examples to run."
-    def __init__(self, before=(), after=(), parents=None, examples=None, user_time=-1,
+    def __init__(self, obj, before=(), after=(), parents=None, examples=None, user_time=-1,
             real_time=-1, error=None, traceback=None):
         self.examples = list(examples or [])
         super(ExampleGroup, self).__init__(
-            None, [CallOnce(before)], [CallOnce(after)], parents,
+            obj, [CallOnce(before)], [CallOnce(after)], parents,
             user_time, real_time, error, traceback, None, None
         )
 
@@ -216,13 +219,13 @@ class ExampleGroup(Example):
         )
 
     def __repr__(self):
-        return "%s(%r, %r, %r,\n%s)" % (
-            self.__class__.__name__, self._before, self._after, self.parents,
+        return "%s(%s, %s, \n%s)" % (
+            self.__class__.__name__, self.name, self.parents,
             tabulate('\n'.join(map(repr, self.examples)))
         )
 
     def __eq__(self, other):
-        return self.examples == getattr(other, 'examples', None) #and super(ExampleGroup, self).__eq__(other)
+        return self.examples == getattr(other, 'examples', None)#and super(ExampleGroup, self).__eq__(other)
 
     def __iter__(self):
         return iter(self.examples)

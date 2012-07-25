@@ -85,21 +85,14 @@ class DescribeExampleRunner(TestCase):
         self.assertEqual(example.stderr.getvalue(), "hello from stderr\n")
         self.assertEqual(example.stdout.getvalue(), "hello world\n")
 
-    @patch('describe.spec.runners.get_true_function')
-    def test_it_knowns_when_it_can_be_skipped(self, getfn):
-        getfn.side_effect = lambda fn: (fn, False)
-        def testfn():
-            pass
-
-        example = Example(testfn, [], [])
+    def test_it_knows_when_it_can_be_skipped(self):
+        example = Example(None, [], [])
         subject = ExampleRunner(example, Mock())
         self.assertTrue(subject.should_skip())
 
-    @patch('describe.spec.runners.get_true_function')
-    def test_it_knowns_when_it_can_not_be_skipped(self, getfn):
-        getfn.side_effect = lambda fn: (fn, False)
-        def testfn():
-            raise TypeError('lol')
+    def test_it_knows_when_it_can_not_be_skipped(self):
+        def testfn(c):
+            pass
 
         example = Example(testfn, [], [])
         subject = ExampleRunner(example, Mock())

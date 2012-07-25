@@ -10,6 +10,21 @@ import types
 from describe.spec.utils import tabulate, filter_traceback
 
 
+def prettyprint_camelcase(name):
+    s = []
+    for c in name:
+        if c.upper() == c:
+            s.append(' ')
+        s.append(c.lower())
+    return ''.join(s)
+
+def prettyprint_underscore_notation(name):
+    return name.replace('_', ' ').replace('  ', ' ').lower()
+
+def prettyprint(name):
+    return prettyprint_underscore_notation(prettyprint_camelcase(name)).strip()
+
+
 class ErrorFormat(object):
     "Represents an error in an example and all it's associated data."
     def __init__(self, name, error, traceback, parents=(), stdout='', stderr=''):
@@ -68,7 +83,7 @@ class ErrorFormat(object):
         sb = []
         for i, parent in enumerate(self.parents):
             if parent.name:
-                sb.append(tabulate(parent.name, times=i))
+                sb.append(tabulate(prettyprint(parent.name), times=i))
         return '\n'.join(sb) + '\n'
 
     def _num_parents(self):
@@ -80,7 +95,7 @@ class ErrorFormat(object):
     def format(self, formatstr):
         return tabulate(formatstr % {
             'parents': self._parents(),
-            'name': str(self.name),
+            'name': prettyprint(str(self.name)),
             'error': self._error(),
             'traceback': self._traceback(),
         }, ignore_first=True).rstrip() + '\n'
@@ -209,37 +224,6 @@ class StandardResultsFormatter(object):
         if message != '':
             self.stdout.write(message)
             self.stdout.flush()
-
-
-class VerboseResultsFormatter(StandardResultsFormatter):
-    def _write_example_failed(self, example):
-        self._write('')
-
-    def _write_example_skipped(self, example):
-        self._write('')
-
-    def _write_example_passed(self, example):
-        self._write('')
-
-    def skip_example(self, example):
-        super(VerboseResultsFormatter, self).skip_example(example)
-        print 'skip', example.name
-
-    def start_example_group(self, example):
-        super(VerboseResultsFormatter, self).start_example_group(example)
-        print 'start_group', example.name
-
-    def end_example_group(self, example):
-        super(VerboseResultsFormatter, self).end_example_group(example)
-        print 'end_group', example.name
-
-    def skip_example_group(self, example):
-        super(VerboseResultsFormatter, self).skip_example_group(example)
-        print 'skip_group', example.name
-
-    def record_example(self, example):
-        super(VerboseResultsFormatter, self).record_example(example)
-        print 'record_example', example.name
 
 
 class MinimalResultsFormatter(StandardResultsFormatter):

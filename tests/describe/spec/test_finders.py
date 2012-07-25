@@ -2,10 +2,11 @@ import sys
 from unittest import TestCase, TestSuite
 from cStringIO import StringIO
 from itertools import izip_longest
+from collections import defaultdict
 
 from mock import Mock, MagicMock, patch
 
-from describe.spec.finders import SpecFileFinder, SpecFinder
+from describe.spec.finders import SpecFileFinder, StandardSpecFinder
 from describe.spec.containers import ExampleGroup, Example
 
 
@@ -24,114 +25,93 @@ class ModuleStub(object):
         else:
             self.__dict__[name] = value
 
+class DescribeBaby:
+    state = defaultdict(int)
+    class ContextInTheBedRoom:
+        def before_each(self):
+            self.state['bedroom_before_each'] += 1
 
-class DescribeSpecFinder(TestCase):
-    def example_key(self, obj):
-        if isinstance(obj, ExampleGroup):
-            return ','.join(sorted(map(self.example_key, obj.examples)))
-        return obj.testfn.__name__
+        def after_each(self):
+            self.state['bedroom_after_each'] += 1
 
-    def assertExampleGroupEqual(self, eg1, eg2):
-        #self.assertEqual(eg1, eg2)
-        exs1 = sorted(eg1, key=self.example_key)
-        exs2 = sorted(eg1, key=self.example_key)
-        self.assertEqual(len(exs1), len(exs2))
-        NULL = object()
-        for ex1, ex2 in izip_longest(exs1, exs2, fillvalue=NULL):
-            self.assertEqual(ex1, ex2)
+        def it_cries(self):
+            self.state['bedroom_it_cries'] += 1
 
-class DescribeSpecFinderIdentification(TestCase):
+    def before_each(self):
+        self.state['before_each'] += 1
+
+    def after_each(self):
+        self.state['after_each'] += 1
+
+    def it_runs_example(self):
+        self.state['example'] += 1
+
+    def it_runs_second_example(self):
+        self.state['second_example'] += 1
+
+def reset_describe_baby():
+    DescribeBaby.state = defaultdict(int)
+
+class DescribeStandardSpecFinder(TestCase):
     def setUp(self):
-        self.subject = SpecFinder()
+        self.subject = StandardSpecFinder()
+
+    class DescribeBaby:
+        pass
 
     def test_it_can_identify_spec(self):
-        self.assertTrue(self.subject.is_spec('describe_cake', Mock()))
-        self.assertTrue(self.subject.is_spec('describe_oranges', Mock()))
+        self.assertTrue(self.subject.is_spec('describe_baby', self.DescribeBaby))
+        self.assertTrue(self.subject.is_spec('DescribeBaby', self.DescribeBaby))
 
-        self.assertFalse(self.subject.is_spec('Describe_oranges', Mock()))
-        self.assertFalse(self.subject.is_spec('DescribeOranges', Mock()))
-        self.assertFalse(self.subject.is_spec('Pizza', Mock()))
-        self.assertFalse(self.subject.is_spec('Cake', Mock()))
-        self.assertFalse(self.subject.is_spec('context_foo', Mock()))
+        self.assertFalse(self.subject.is_spec('baby_waaah', self.DescribeBaby))
+        self.assertFalse(self.subject.is_spec('DescribeInvalid', 534))
 
     def test_it_can_identify_context(self):
-        self.assertTrue(self.subject.is_context('describe_cake', Mock()))
-        self.assertTrue(self.subject.is_context('describe_oranges', Mock()))
-        self.assertTrue(self.subject.is_context('context_color', Mock()))
+        self.assertTrue(self.subject.is_context('describe_bedroom', self.DescribeBaby))
+        self.assertTrue(self.subject.is_context('DescribeBedroom', self.DescribeBaby))
+        self.assertTrue(self.subject.is_context('context_bedroom', self.DescribeBaby))
+        self.assertTrue(self.subject.is_context('ContextBedroom', self.DescribeBaby))
 
-        self.assertFalse(self.subject.is_context('Describe_oranges', Mock()))
-        self.assertFalse(self.subject.is_context('DescribeOranges', Mock()))
-        self.assertFalse(self.subject.is_context('Pizza', Mock()))
-        self.assertFalse(self.subject.is_context('Cake', Mock()))
-        self.assertFalse(self.subject.is_context('Context_foo', Mock()))
+        self.assertFalse(self.subject.is_spec('DescribeInvalid', 534))
+        self.assertFalse(self.subject.is_spec('foo', self.DescribeBaby))
+        self.assertFalse(self.subject.is_spec('ContextInvalid', 'lol'))
 
     def test_it_can_identify_example(self):
-        self.assertTrue(self.subject.is_example('it_can_do_stuff', Mock()))
-        self.assertTrue(self.subject.is_example('it_makes_up', Mock()))
+        self.assertTrue(self.subject.is_example('it_cries', lambda: 1))
+        self.assertFalse(self.subject.is_example('itcries', lambda: 1))
+        self.assertFalse(self.subject.is_example('cries', lambda: 1))
+        self.assertFalse(self.subject.is_example('it_cries', 2))
 
-        self.assertFalse(self.subject.is_example('itCanFly', Mock()))
-        self.assertFalse(self.subject.is_example('It_can_fly', Mock()))
-        self.assertFalse(self.subject.is_example('itcanfly', Mock()))
+class DescribeStandardSpecFinderResults(TestCase):
+    def setUp(self):
+        self.subject = StandardSpecFinder()
+        reset_describe_baby()
 
-
-class DescribeSpecFinderNested(TestCase):
-    def test_it_finds_specs_from_modules(self):
-        def describe_cake():
-            def before_each(): pass
-            def it_should_detect_me(): pass
-            def tom_foolery(): pass
-            # return to make it easier to test
-            return it_should_detect_me, [before_each], [], (describe_cake,)
-
-        def describe_food():
-            def context_nested():
-                def it_should_allow_contexts(): pass
-                def foobar(): pass
-                return it_should_allow_contexts
-            # return to make it easier to test
-            return context_nested(), [], [], (describe_food, context_nested)
-
-        def describe_orange():
-            def describe_color():
-                def it_should_be_orange(): pass
-                return it_should_be_orange
-            # return to make it easier to test
-            return describe_color(), [], [], (describe_orange, describe_color)
-
-        m = ModuleStub(
-            describe_cake, describe_food, describe_orange,
-            __name__='TestModule', is_cake_a_lie=True, __version__="9001"
-        )
-
-        _dir = Mock(return_value=m.__dict__.keys())
-        subject = SpecFinder(_dir)
-
-        _, _, _, parents1 = describe_food()
-        _, _, _, parents2 = describe_food()
-        expected = ExampleGroup(examples=[
-            Example(*describe_cake()),
-            ExampleGroup(
-                parents=parents1,
-                examples=[
-                    Example(*describe_food()),
-                ]
-            ),
-            ExampleGroup(
-                parents=parents2,
-                examples=[
-                    Example(*describe_orange()),
-                ]
-            ),
+    def test_it_can_produce_example_tree(self):
+        examples = self.subject.find(ModuleStub(DescribeBaby))
+        expected = ExampleGroup('Specs', examples=[
+            ExampleGroup(DescribeBaby, examples=[
+                ExampleGroup(DescribeBaby.ContextInTheBedRoom, examples=[
+                    Example(DescribeBaby.ContextInTheBedRoom.it_cries,
+                        parents=[DescribeBaby, DescribeBaby.ContextInTheBedRoom],
+                        before=[DescribeBaby.before_each, DescribeBaby.ContextInTheBedRoom.before_each],
+                        after=[DescribeBaby.after_each, DescribeBaby.ContextInTheBedRoom.after_each]
+                    )],
+                    parents=[DescribeBaby()],
+                ),
+                Example(DescribeBaby.it_runs_example,
+                    parents=[DescribeBaby],
+                    before=[DescribeBaby.before_each],
+                    after=[DescribeBaby.after_each],
+                ),
+                Example(DescribeBaby.it_runs_second_example,
+                    parents=[DescribeBaby],
+                    before=[DescribeBaby.before_each],
+                    after=[DescribeBaby.after_each],
+                )
+            ])
         ])
-        self.maxDiff = None
-        # keep it sorted to have an order
-        actual = subject.find(m)
-
-        from pprint import pprint
-        pprint(expected)
-        pprint(actual)
-
-        self.assertEqual(actual, expected)
+        self.assertEqual(examples, expected)
 
 
 class DescribeSpecFileFinderFeatures(TestCase):

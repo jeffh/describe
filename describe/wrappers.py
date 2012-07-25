@@ -19,17 +19,18 @@ class ValueWrapper(object):
 
     def __repr__(self):
         if callable(self.raw_value):
-            if self.args is None or self.kwargs is None:
-                raise TypeError("expects invocation of callable using the expects property.")
-            args = [
-                ', '.join(map(repr, self.args)),
-                ', '.join('%r=%r' % item for item in self.kwargs.items())
-            ]
-            args = [i for i in args if i.strip() != '']
-            return 'invocation of %s(%s)' % (
-                self.raw_value.__name__,
-                ', '.join(args)
-            )
+            if (self.args is not None or self.kwargs is not None):
+                args = [
+                    ', '.join(map(repr, self.args or ())),
+                    ', '.join('%r=%r' % item for item in (self.kwargs or {}).items())
+                ]
+                args = [i for i in args if i.strip() != '']
+                return '<invocation of %s(%s)>' % (
+                    self.raw_value.__name__,
+                    ', '.join(args)
+                )
+            else:
+                return getattr(self.raw_value, '__name__', self.raw_value)
         return repr(self.raw_value)
 
     def evaluate(self):

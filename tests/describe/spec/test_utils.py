@@ -6,8 +6,7 @@ from functools import wraps
 from mock import Mock, patch
 
 from describe.spec.utils import (tabulate, Replace, Benchmark, CallOnce, with_metadata,
-        getargspec, func_equal, accepts_arg, locals_from_function, returns_locals,
-        filter_traceback)
+        getargspec, func_equal, accepts_arg, filter_traceback)
 
 
 class DescribeFilteredTraceback(TestCase):
@@ -30,47 +29,47 @@ class DescribeFilteredTraceback(TestCase):
 
         self.assertEqual(filter_traceback(Mock(), tb), "bar")
 
-class DescribeFnReturnsLocals(TestCase):
-    def test_it_captures_locals_from_function(self):
-        def foo():
-            a = 2
-            b = 'foo'
-            z = {}
-
-        fn = returns_locals(foo)
-        context = fn()
-        del context['sys']
-        del context['_________describe_exception']
-        self.assertEqual(context, {
-            'a': 2,
-            'b': 'foo',
-            'z': {},
-        })
-
-    def test_it_captures_locals_from_decorated_function(self):
-        def d(name):
-            @with_metadata
-            def decorator(fn):
-                @wraps(fn)
-                def wrapper(*args, **kwargs):
-                    return fn(name, *args, **kwargs)
-                return wrapper
-            return decorator
-
-        @d('lol')
-        def foo(name):
-            a = 'foo'
-            b = 3
-
-        func = returns_locals(foo)
-        context = func()
-        del context['sys']
-        del context['_________describe_exception']
-        self.assertEqual(context, {
-            'a': 'foo',
-            'b': 3,
-            'name': 'lol',
-        })
+#class DescribeFnReturnsLocals(TestCase):
+#    def test_it_captures_locals_from_function(self):
+#        def foo():
+#            a = 2
+#            b = 'foo'
+#            z = {}
+#
+#        fn = returns_locals(foo)
+#        context = fn()
+#        del context['sys']
+#        del context['_________describe_exception']
+#        self.assertEqual(context, {
+#            'a': 2,
+#            'b': 'foo',
+#            'z': {},
+#        })
+#
+#    def test_it_captures_locals_from_decorated_function(self):
+#        def d(name):
+#            @with_metadata
+#            def decorator(fn):
+#                @wraps(fn)
+#                def wrapper(*args, **kwargs):
+#                    return fn(name, *args, **kwargs)
+#                return wrapper
+#            return decorator
+#
+#        @d('lol')
+#        def foo(name):
+#            a = 'foo'
+#            b = 3
+#
+#        func = returns_locals(foo)
+#        context = func()
+#        del context['sys']
+#        del context['_________describe_exception']
+#        self.assertEqual(context, {
+#            'a': 'foo',
+#            'b': 3,
+#            'name': 'lol',
+#        })
 
 
 class DescribeAcceptArgs(TestCase):
@@ -246,37 +245,37 @@ class TestTabulate(TestCase):
         self.assertEqual(tabulate('\n\nfoo', times=0), '\n\nfoo')
 
 
-class TestLocalsFromFunction(TestCase):
-    def test_extracts_local_functions_with_invocation(self):
-        def describe_spec():
-            lol = True
-            def it_should_read_submethods(): pass
-            def before_each(): pass
-            def before_all(): pass
-            def sample_func(): pass
-            def after_each(): pass
-            def after_all(): pass
-            def it_should_capture_this_method(): pass
+# class TestLocalsFromFunction(TestCase):
+#     def test_extracts_local_functions_with_invocation(self):
+#         def describe_spec():
+#             lol = True
+#             def it_should_read_submethods(): pass
+#             def before_each(): pass
+#             def before_all(): pass
+#             def sample_func(): pass
+#             def after_each(): pass
+#             def after_all(): pass
+#             def it_should_capture_this_method(): pass
 
-        context = locals_from_function(describe_spec)
-        methods = [
-            'it_should_read_submethods',
-            'before_each',
-            'before_all',
-            'after_each',
-            'after_all',
-            'it_should_capture_this_method',
-            'sample_func',
-        ]
-        self.assertEqual(set(context.keys()), set(methods))
+#         context = locals_from_function(describe_spec)
+#         methods = [
+#             'it_should_read_submethods',
+#             'before_each',
+#             'before_all',
+#             'after_each',
+#             'after_all',
+#             'it_should_capture_this_method',
+#             'sample_func',
+#         ]
+#         self.assertEqual(set(context.keys()), set(methods))
 
-    def test_reraises_any_exceptions_thrown(self):
-        def describe_spec():
-            @does_not_exist
-            def it_should_do_stuff(): pass
+#     def test_reraises_any_exceptions_thrown(self):
+#         def describe_spec():
+#             @does_not_exist
+#             def it_should_do_stuff(): pass
 
-        with self.assertRaises(NameError):
-            locals_from_function(describe_spec)
+#         with self.assertRaises(NameError):
+#             locals_from_function(describe_spec)
 
 class TestReplace(TestCase):
     def test_is_a_decorator(self):

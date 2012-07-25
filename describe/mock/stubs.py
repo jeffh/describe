@@ -86,9 +86,14 @@ class Counter(object):
     for validating the proper count.
     """
     def __init__(self, start=0):
-        self.error_message = ''
+        self.error_message = 'Assertion Failed'
         self.current = start
         self.goal = None
+
+    def __repr__(self):
+        return "Counter(%r, error_message=%r, self.goal=%r)" % (
+            self.current, self.error_message, self.goal
+        )
 
     def set(self, count):
         self.current = count
@@ -96,7 +101,7 @@ class Counter(object):
 
     def set_goal(self, fn, error_message=''):
         self.goal = fn
-        self.error_message = ''
+        self.error_message = error_message
         return self
 
     def increment(self):
@@ -224,16 +229,22 @@ class ExpectationBuilder(object):
         return self
 
     def exactly(self, times):
-        return self.__set_counter_goal(lambda c: c == times,
-                '%(matcher)s expected to be called exactly ' + str(times) + ' times')
+        def equal(c): return c == times
+
+        return self.__set_counter_goal(equal,
+                '%(matcher)s expected to be called exactly ' + str(times) + ' times.')
 
     def at_least(self, times):
-        return self.__set_counter_goal(lambda c: c >= times,
-                '%(matcher)s expected to be called at least ' + str(times) + ' times')
+        def greater_than_or_equal(c): return c >= times
+
+        return self.__set_counter_goal(greater_than_or_equal,
+                '%(matcher)s expected to be called at least ' + str(times) + ' times.')
 
     def at_most(self, times):
-        return self.__set_counter_goal(lambda c: c <= times,
-                '%(matcher)s expected to be called at most ' + str(times) + ' times')
+        def less_than_or_equal(c): return c <= times
+
+        return self.__set_counter_goal(less_than_or_equal,
+                '%(matcher)s expected to be called at most ' + str(times) + ' times.')
 
     def __create_returner(self, consumer):
         self.__callable = consumer

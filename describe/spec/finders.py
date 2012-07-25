@@ -1,59 +1,72 @@
 import os
 import sys
+import inspect
+from cStringIO import StringIO
 
-from describe.spec.utils import locals_from_function
+from describe.spec.utils import locals_from_function, Replace
 from describe.spec.containers import SpecFile, Context, Example, ExampleGroup
 
 
-class SpecFinder(object):
-    "Finds functions in a module that should be executed as a spec."
-    def __init__(self, get_vars=locals_from_function, dirfn=dir):
-        self.get_vars = locals_from_function
-        self._dir = dirfn # to allow replacement in tests
+class StandardSpecFinder(object):
+    """Finds functions in modules and classes that should be executed as a spec.
 
+    Behaves more like traditional python testers - nose, py.test, etc.
+
+    """
     def is_spec(self, name, obj):
-        return name.startswith('describe_') and callable(obj)
+        return (name.startswith('describe_') or name.startswith('Describe')) and inspect.isclass(obj)
 
     def is_context(self, name, obj):
-        prefixes = ['context_', 'describe_']
-        return any(name.startswith(s) for s in prefixes) and callable(obj)
+        return self.is_spec(name, obj) or (
+            (name.startswith('context_') or name.startswith('Context')) and inspect.isclass(obj)
+        )
 
-    def is_example(self, name, obj):
-        return name.startswith('it_') and callable(obj)
+    def is_example(self, name, obj, parent_before_each=None, parent_after_each=None):
+        return name.lower().startswith('it_') and callable(obj)
 
-    def extract_examples(self, fn, parents=(), parent_before_each=None, parent_after_each=None):
-        local_vars = self.get_vars(fn)
-        # prevent infinite recursion....
-        if fn.__name__ in local_vars and local_vars[fn.__name__] == fn:
-            del local_vars[fn.__name__]
+    def _is_valid(self, name, obj):
+        return self.is_spec(name, obj) or self.is_context(name, obj) or self.is_example(name, obj)
 
-        before_each = local_vars.get('before_each')
-        after_each = local_vars.get('after_each')
-        before_all = local_vars.get('before_all')
-        after_all = local_vars.get('after_all')
+    def __extract_method(self, obj, name):
+        method = getattr(obj, name, None)
+        if callable(method):
+            return (method,)
+        return ()
 
-        before = list(filter(bool, [before_each, parent_before_each]))
-        after = list(filter(bool, [after_each, parent_after_each]))
-
-        parents = parents + (fn,)
-
-        group = ExampleGroup(before_all, after_all, parents)
-        for name, obj in local_vars.items():
-            if self.is_example(name, obj):
-                group.append(Example(obj, before, after, parents))
-            if self.is_context(name, obj):
-                group.append(self.extract_examples(
-                    obj, parents, before_each, after_each))
-        return group
+    def __extract_examples(self, name, obj, parents=(), parent_before_each=(), parent_after_each=()):
+        if self.is_spec(name, obj) or self.is_context(name, obj):
+            instance = obj()
+            before_each = parent_before_each + self.__extract_method(instance, 'before_each')
+            after_each = parent_after_each + self.__extract_method(instance, 'after_each')
+            newparents = parents + (instance,)
+            examples = []
+            for n in dir(instance):
+                subobj = getattr(instance, n)
+                if self._is_valid(n, subobj):
+                    example = self.__extract_examples(n, subobj, newparents, before_each, after_each)
+                    if example:
+                        examples.append(example)
+            return ExampleGroup(
+                getattr(obj, '__name__', None),
+                before=self.__extract_method(instance, 'before_all'),
+                after=self.__extract_method(instance, 'after_all'),
+                parents=parents,
+                examples=examples
+            )
+        elif self.is_example(name, obj):
+            before_each = parent_before_each + self.__extract_method(obj, 'before_each')
+            after_each = parent_after_each + self.__extract_method(obj, 'after_each')
+            return Example(obj, parents=parents, before=before_each, after=after_each)
+        else:
+            return None
 
     def find(self, module):
         specs = []
-        for name in self._dir(module):
+        for name in dir(module):
             obj = getattr(module, name)
-            if self.is_spec(name, obj):
-                specs.extend(self.extract_examples(obj))
-        return ExampleGroup(examples=specs)
-
+            if self._is_valid(name, obj):
+                specs.append(self.__extract_examples(name, obj))
+        return ExampleGroup('Specs', examples=specs)
 
 class SpecFileFinder(object):
     "Searches the file system for python files that might contain specs."

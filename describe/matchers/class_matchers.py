@@ -118,14 +118,24 @@ matcher_repository.add(LessThanOrEqualToMatcher)
 
 
 class ExceptionMatcher(MatcherBase):
-    MESSAGE = 'raise error %(expected)r, but got %(error)r'
+    MESSAGE = 'raise error %(expected)r, but got %(error)s'
+    FN_MESSAGE = 'raise error %(expected)r, but got %(error)s.\n\nDid you mean to do: expect(%(actual)s).with_args().to.raise_error(%(expected)s)?'
     METHODS = ['raise_error']
 
+    def reads_as_name(self, obj):
+        if self.is_class(obj) or callable(obj):
+            return obj.__name__
+        return repr(obj)
+
     def get_postfix_message(self, actual_value):
-        return self.MESSAGE % {
-            'expected': getattr(self.expected_value, '__name__', self.expected_value),
+        if callable(actual_value):
+            msg = self.MESSAGE
+        else:
+            msg = self.FN_MESSAGE
+        return msg % {
+            'expected': self.reads_as_name(self.expected_value),
             'actual': actual_value,
-            'error': getattr(self, 'error', 'none'),
+            'error': self.reads_as_name(getattr(self, 'error', None)),
         }
 
     def is_class(self, error):
