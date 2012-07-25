@@ -1,2 +1,5 @@
 #!/usr/bin/env python
-execfile('describe/main.py')
+import os
+execfile(
+    os.path.join(os.path.abspath(os.path.dirname(__file__)), 'describe', 'main.py')
+)
