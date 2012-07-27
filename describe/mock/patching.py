@@ -3,7 +3,7 @@ from types import ModuleType
 from functools import wraps
 
 from describe.spec.utils import Replace, with_metadata
-from describe.mock.stubs import Stub
+from describe.mock.stub import Stub
 
 __all__ = ['patch']
 
@@ -60,9 +60,7 @@ class Patcher(object):
         self.getattr, self.setattr = getattr, setattr
 
     def object(self, obj, attr, value=None):
-        return Replace(obj, attr, value or Stub(
-            getattr(obj, '__name__', '') + '.' + attr
-        ))
+        return Replace(obj, attr, value or Stub())
 
     def __call__(self, objectpath, value=None):
         modulepath, obj = objectpath.rsplit('.', 1)

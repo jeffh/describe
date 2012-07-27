@@ -1,12 +1,12 @@
 
-__all__ = ('StubRegistry', 'StubRegistryError')
+__all__ = ('Registry', 'RegistryError')
 
 
-class StubRegistryError(Exception):
+class RegistryError(Exception):
     pass
 
 
-class StubRegistry(object):
+class Registry(object):
     registries = []
     def __init__(self):
         if self not in self.registries:
@@ -21,7 +21,7 @@ class StubRegistry(object):
         try:
             return cls.registries[-1]
         except IndexError:
-            raise StubRegistryError('Missing StubRegistry, please create one')
+            raise RegistryError('Missing Registry, please create one')
 
     def add(self, stub):
         if stub not in self.stubs:

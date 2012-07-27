@@ -4,7 +4,7 @@ from unittest import FunctionTestCase, TestSuite
 from itertools import izip_longest
 from cStringIO import StringIO
 
-from describe.mock.registry import StubRegistry
+from describe.mock.registry import Registry
 from describe.spec.containers  import Context, ExampleGroup, Example
 from describe.spec.utils import Benchmark, Replace, CallOnce, \
         accepts_arg, get_true_function, func_equal, tabulate, NOOP
@@ -105,7 +105,7 @@ class ExampleRunner(object):
         "Handles the execution of the Example"
         test_benchmark = Benchmark()
         try:
-            with StubRegistry(), test_benchmark:
+            with Registry(), test_benchmark:
                 if accepts_arg(self.example.testfn):
                     self.example.testfn(self.context)
                 else:

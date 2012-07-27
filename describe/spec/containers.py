@@ -5,7 +5,6 @@ from itertools import izip_longest
 from cStringIO import StringIO
 
 from describe.spec.utils import CallOnce, accepts_arg, func_equal, tabulate
-from describe.mock.registry import StubRegistry
 
 
 class SpecFile(object):
