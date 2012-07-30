@@ -1,4 +1,5 @@
 from describe.flags import (NO_ARG, ANYTHING, is_flag, params_match)
+from describe.mock.utils import get_args_str
 
 class Invoke(object):
 	"""A simple wrapper around a function that indicates the function should be invoked instead being
@@ -39,20 +40,11 @@ class Expectation(object):
 	def is_consumed(self):
 		return True
 
-	def get_args_str(self):
-		args = []
-		if self.args and not is_flag(self.args):
-			args += [repr(a) for a in self.args]
-		if self.kwargs and not is_flag(self.kwargs):
-			for k, v in self.kwargs.items():
-				args.append('%s=%r' % (k, v))
-		return args
-
 	def __repr__(self):
 		return '<Expect %(name)s(%(args)s) => %(returns)r>' % {
 			'name': self.name,
 			'returns': self.returns,
-			'args': ', '.join(self.get_args_str()),
+			'args': get_args_str(self.args, self.kwargs),
 		}
 
 class ExpectationList(object):
@@ -60,36 +52,59 @@ class ExpectationList(object):
 
 	The mock must be invoked in this given order.
 	"""
-	def __init__(self, *expectations):
+	class FailedToSatisfyArgumentsError(Exception):
+		def __init__(self, expect):
+			self.expect = expect
+	class FailedToSatisfyAttrnameError(Exception):
+		def __init__(self, expect):
+			self.expect = expect
+	class NoExpectationsError(Exception):
+		pass
+
+	def __init__(self, *expectations, **kwargs):
 		self.expects = list(expectations)
 		self.history = []
+		self.delegate = kwargs.pop('delegate')
 
 	def add(self, *expectations):
 		self.expects.extend(expectations)
 
-	def _invoked(self, attrname, args, kwargs):
-		print self.expects
-		if not self.expects:
-			raise AssertionError()
-		expect = self.expects[0]
+	def process_expectation(self, expect, args, kwargs):
+		if expect not in self.history:
+			self.history.append(expect)
+		try:
+			result = expect.return_value()
+		finally:
+			if expect.is_consumed():
+				try:
+					self.expects.remove(expect)
+				except ValueError:
+					pass
+		return result
+
+	def validate_expectation(self, expect, attrname, args, kwargs):
 		if expect.satisfies_attrname(attrname):
 			if expect.satisfies_arguments(args, kwargs):
-				self.history.append(expect)
-				try:
-					result = expect.return_value()
-				finally:
-					if expect.is_consumed():
-						self.expects.pop(0)
-				print 'consumed', expect, '=>', result
-				return result
+				return self.process_expectation(expect, args, kwargs)
 			else:
-				print 'failed satisfies_arguments'
+				raise self.FailedToSatisfyArgumentsError(expect)
 		else:
-			print 'failed satisfies_attrname', attrname
-		raise AssertionError()
+			raise self.FailedToSatisfyAttrnameError(expect)
+
+	def invoked(self, attrname, args, kwargs):
+		try:
+			if not self.expects:
+				raise self.NoExpectationsError()
+			return self.validate_expectation(self.expects[0], attrname, args, kwargs)
+		except self.NoExpectationsError:
+			return self.delegate.no_expectations(self, attrname, args, kwargs)
+		except self.FailedToSatisfyAttrnameError as e:
+			return self.delegate.fails_to_satisfy_attrname(self, attrname, args, kwargs, e.expect)
+		except self.FailedToSatisfyArgumentsError as e:
+			return self.delegate.fails_to_satisfy_arguments(self, attrname, args, kwargs, e.expect)
 
 	def attribute_invoked(self, attrcatcher, args, kwargs):
-		return self._invoked(attrcatcher._name_, args, kwargs)
+		return self.invoked(attrcatcher._name_, args, kwargs)
 
 	def attribute_read(self, attrcatcher, name):
 		raise NotImplementedError("Invalid attr read")
@@ -98,37 +113,31 @@ class ExpectationList(object):
 		raise NotImplementedError("Invalid key access")
 
 	def get_attribute(self, name):
-		return self._invoked(name, (), {})
+		return self.invoked(name, (), {})
 
 	@property
 	def num_left(self):
 		return len(self.expects)
 
 	def __repr__(self):
-		return "ExpectationList%r" % self.expects
+		return "ExpectationList%r - %r" % (self.expects, self.history)
 
 class ExpectationSet(ExpectationList):
 	"""Contains an object-level unordered list of expectations.
 
 	The mock can be invoked in any order.
 	"""
-	def attribute_invoked(self, attrcatcher, args, kwargs):
-		attrname = attrcatcher._name_
+	def invoked(self, attrname, args, kwargs):
+		print self.expects
 		for expect in self.expects:
-			if expect.satisfies_attrname(attrname):
-				if expect.satisfies_arguments(args, kwargs):
-					self.history.append(expect)
-					try:
-						result = expect.return_value()
-					finally:
-						if expect.is_consumed():
-							self.expects.remove(expect)
-					return result
-		raise AssertionError()
+			try:
+				return self.validate_expectation(expect, attrname, args, kwargs)
+			except (self.NoExpectationsError, self.FailedToSatisfyAttrnameError, self.FailedToSatisfyArgumentsError):
+				pass
+		return self.delegate.no_expectations(self, attrname, args, kwargs)
 
 	def __repr__(self):
 		return "ExpectationSet%r" % self.expects
-
 
 class AttributeCatcher(object):
 	"Simply captures values to pass to delegate."
@@ -148,8 +157,15 @@ class AttributeCatcher(object):
 
 
 class ExpectationBuilder(object):
-	def __init__(self, mock, attrname):
-		self.mock, self.attrname = mock, attrname
+	"""ExpectationBuilder handles the creation of Expectation objects.
+
+	It attaches them to the given target
+	"""
+	def __init__(self, delegate, add_invocations, add_expectations, attrname):
+		self.delegate = delegate
+		self.add_invocations = add_invocations
+		self.add_expectations = add_expectations
+		self.attrname = attrname
 		self.is_attr_read = True
 		self.args = NO_ARG
 		self.kwargs = NO_ARG
@@ -164,8 +180,8 @@ class ExpectationBuilder(object):
 
 	def __expect(self, constructor, value):
 		if not self.is_attr_read:
-			self.mock.__invocations__.update([self.attrname])
-		self.mock.__expectations__.add(constructor(self.attrname, value, args=self.args, kwargs=self.kwargs))
+			self.add_invocations(self.attrname, value, self.args, self.kwargs)
+		self.add_expectations(constructor(self.attrname, value, self.args, self.kwargs))
 
 	def to_raise(self, error):
 		self.__expect(Expectation.raises, error)
@@ -175,15 +191,36 @@ class ExpectationBuilder(object):
 
 
 class ExpectationBuilderFactory(object):
-	def __init__(self, mock):
-		self.mock = mock
+	"""ExpectationBuilderFactory handles the creation of ExpectationBuilder.
+
+	This is used in conjunction with AttributeCatcher (as a delegate) to generate
+	ExpectationBuilder with a nice expectation API:
+
+	   >>> m = Mock()
+	   >>> m.expects # returns AttributeCatcher with delegate = ExpectationBuilderFactory
+	   # AttributeCatcher defers to ExpectationBuilderFactory, which returns an ExpectationBuilder
+	   >>> m.expects.foo() # returns ExpectationBuilder instance
+
+	Parameters:
+	 - add_invocation(attrname, value, args, kwargs) is a method indicates a given
+	        attribute is a method invocation.
+	 - add_expectations(*expectations) is a method which adds one or more expectations to a list.
+	 - delegate is the instance to handle deferred methods from Expectation objects.
+	"""
+	def __init__(self, add_invocation, add_expectations, delegate):
+		self.add_invocation = add_invocation
+		self.add_expectations = add_expectations
+		self.delegate = delegate
 
 	def attribute_invoked(self, attrcatcher, args, kwargs):
-		return ExpectationBuilder(self.mock, '__call__')(*args, **kwargs)
+		"Handles the creation of ExpectationBuilder when an attribute is invoked."
+		return ExpectationBuilder(self.delegate, self.add_invocation, self.add_expectations, '__call__')(*args, **kwargs)
 
 	def attribute_read(self, attrcatcher, name):
-		return ExpectationBuilder(self.mock, name)
+		"Handles the creation of ExpectationBuilder when an attribute is read."
+		return ExpectationBuilder(self.delegate, self.add_invocation, self.add_expectations, name)
 
 	def key_read(self, attrcatcher, name):
-		return ExpectationBuilder(self.mock, '__getitem__')(name)
+		"Handles the creation of ExpectationBuilder when a dictionary item access."
+		return ExpectationBuilder(self.delegate, self.add_invocation, self.add_expectations, '__getitem__')(name)
 

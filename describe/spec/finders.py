@@ -18,7 +18,10 @@ class StandardSpecFinder(object):
 
     def is_context(self, name, obj):
         return self.is_spec(name, obj) or (
-            (name.startswith('context_') or name.startswith('Context')) and inspect.isclass(obj)
+            (
+             name.startswith('context_') or name.startswith('Context') or
+             name.startswith('when_') or name.startswith('When')
+            ) and inspect.isclass(obj)
         )
 
     def is_example(self, name, obj, parent_before_each=None, parent_after_each=None):

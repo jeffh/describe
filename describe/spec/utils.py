@@ -288,14 +288,16 @@ class Replace(object):
 
     def start(self):
         if self.noop: return self
-        self._original = getattr(self.obj, self.name)
+        self.original = getattr(self.obj, self.name)
         setattr(self.obj, self.name, self.value)
         return self
+    replace = start
 
     def stop(self):
         if self.noop: return self
-        setattr(self.obj, self.name, self._original)
+        setattr(self.obj, self.name, self.original)
         return self
+    restore = stop
 
     def __enter__(self):
         self.start()

@@ -5,7 +5,7 @@ from mock import Mock, patch
 from describe.mock.patching import patch as patcher
 from describe.mock.patching import DictReplacement
 from describe.spec.utils import with_metadata
-from describe.mock.stub import Stub
+from describe.mock.stub import stub
 
 import os.path
 
@@ -56,7 +56,7 @@ class DescribePatch(TestCase):
 
         self.assertNotEqual(sys.stdout, instance)
 
-    @patch('describe.mock.patching.Stub')
+    @patch('describe.mock.patching.stub')
     def test_it_temporarily_replaces_a_given_object_attr_with_stub(self, Stub):
         instance = Stub.return_value
         self.assertNotEqual(sys.stdout, instance)

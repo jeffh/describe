@@ -1,5 +1,7 @@
 import types
 
+from describe.flags import is_flag
+
 def is_function(value):
     return type(value) == types.FunctionType
 
@@ -12,3 +14,12 @@ class NILObject(object):
 
 NIL = NILObject
 
+
+def get_args_str(args, kwargs):
+	args = []
+	if args and not is_flag(args):
+		args += [repr(a) for a in args]
+	if kwargs and not is_flag(kwargs):
+		for k, v in kwargs.items():
+			args.append('%s=%r' % (k, v))
+	return ', '.join(args)

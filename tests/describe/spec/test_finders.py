@@ -71,6 +71,8 @@ class DescribeStandardSpecFinder(TestCase):
         self.assertTrue(self.subject.is_context('DescribeBedroom', self.DescribeBaby))
         self.assertTrue(self.subject.is_context('context_bedroom', self.DescribeBaby))
         self.assertTrue(self.subject.is_context('ContextBedroom', self.DescribeBaby))
+        self.assertTrue(self.subject.is_context('when_in_bedroom', self.DescribeBaby))
+        self.assertTrue(self.subject.is_context('WhenInBedroom', self.DescribeBaby))
 
         self.assertFalse(self.subject.is_spec('DescribeInvalid', 534))
         self.assertFalse(self.subject.is_spec('foo', self.DescribeBaby))

@@ -1,6 +1,8 @@
 from unittest import TestCase
 
-from describe.mock.mock import Mock, ExpectationList, ExpectationSet, Expectation, Invoke, verify_mock
+from describe.mock.mock import (
+    Mock, Invoke, verify_mock, MockErrorDelegate,
+)
 from describe.mock.expectations import ExpectationList, ExpectationSet, Expectation
 from describe import flags as f
 
@@ -90,21 +92,24 @@ class TestEmptyMock(TestCase):
 
 
 class TestMockWithExpectationList(TestCase):
+	def setUp(self):
+		self.d = MockErrorDelegate()
+
 	def test_it_does_not_validate(self):
 		m = Mock()
-		m.__expectations__ = ExpectationList(Expectation('foo', returns=42))
+		m.__expectations__ = ExpectationList(Expectation('foo', returns=42), delegate=self.d)
 		with self.assertRaises(AssertionError):
 			verify_mock(m)
 
 	def test_it_can_raise_error(self):
 		m = Mock()
-		m.__expectations__ = ExpectationList(Expectation.raises('foo', TypeError))
+		m.__expectations__ = ExpectationList(Expectation.raises('foo', TypeError), delegate=self.d)
 		with self.assertRaises(TypeError):
 			m.foo()
 
 	def test_it_should_allow_attr_access_with_expectation(self):
 		m = Mock()
-		m.__expectations__ = ExpectationList(Expectation('foo', returns=42))
+		m.__expectations__ = ExpectationList(Expectation('foo', returns=42), delegate=self.d)
 		self.assertEqual(m.foo, 42)
 		with self.assertRaises(AssertionError):
 			m.foo
@@ -112,7 +117,7 @@ class TestMockWithExpectationList(TestCase):
 	def test_it_should_allow_method_invocation_with_expectations(self):
 		m = Mock()
 		m.__invocations__ = set(('foo',))
-		m.__expectations__ = ExpectationList(Expectation('foo', returns=Invoke(lambda: 2)))
+		m.__expectations__ = ExpectationList(Expectation('foo', returns=Invoke(lambda: 2)), delegate=self.d)
 		self.assertEqual(m.foo(), 2)
 		with self.assertRaises(AssertionError):
 			m.foo()
@@ -123,6 +128,7 @@ class TestMockWithExpectationList(TestCase):
 		m.__expectations__ = ExpectationList(
 		    Expectation('foo', returns=Invoke(lambda: 2)),
 		    Expectation('bar', returns=Invoke(lambda: 3)),
+		    delegate=self.d
 		)
 		with self.assertRaises(AssertionError):
 			m.bar()
@@ -134,7 +140,7 @@ class TestMockWithExpectationList(TestCase):
 	def test_it_should_allow_call_with_expectations(self):
 		m = Mock()
 		m.__invocations__ = set(('__call__',))
-		m.__expectations__ = ExpectationList(Expectation('__call__', returns=1))
+		m.__expectations__ = ExpectationList(Expectation('__call__', returns=1), delegate=self.d)
 		self.assertEqual(m(), 1)
 		with self.assertRaises(AssertionError):
 			m()
@@ -142,7 +148,7 @@ class TestMockWithExpectationList(TestCase):
 	def test_it_should_allow_magic_methods_with_expectations(self):
 		m = Mock()
 		m.__invocations__ = set(('__add__',))
-		m.__expectations__ = ExpectationList(Expectation('__add__', returns=4))
+		m.__expectations__ = ExpectationList(Expectation('__add__', returns=4), delegate=self.d)
 		self.assertEqual(m + 2, 4)
 		with self.assertRaises(AssertionError):
 			m + 2
@@ -150,24 +156,39 @@ class TestMockWithExpectationList(TestCase):
 	def test_it_should_allow_multiple_calls_to_same_method_with_expectations(self):
 		m = Mock()
 		m.__invocations__ = set(('foo',))
-		m.__expectations__ = ExpectationList(Expectation('foo', returns=1), Expectation('foo', returns=2))
+		m.__expectations__ = ExpectationList(
+		    Expectation('foo', returns=1),
+		    Expectation('foo', returns=2),
+		    delegate=self.d
+	    )
 		self.assertEqual(m.foo(), 1)
 		self.assertEqual(m.foo(), 2)
 		with self.assertRaises(AssertionError):
 			m.foo()
 
 class TestMockWithExpectationSet(TestCase):
+	def setUp(self):
+		self.d = MockErrorDelegate()
+
 	def test_it_expects_regardless_of_order(self):
 		m = Mock()
 		m.__invocations__ = set(('foo', 'bar'))
-		m.__expectations__ = ExpectationSet(Expectation('foo', returns=2), Expectation('bar', returns=4))
+		m.__expectations__ = ExpectationSet(
+		    Expectation('foo', returns=2),
+		    Expectation('bar', returns=4),
+		    delegate=self.d,
+		)
 		self.assertEqual(m.bar(), 4)
 		self.assertEqual(m.foo(), 2)
 
 	def test_it_should_allow_multiple_calls_to_same_method_with_expectations(self):
 		m = Mock()
 		m.__invocations__ = set(('foo',))
-		m.__expectations__ = ExpectationSet(Expectation('foo', returns=1), Expectation('foo', returns=2))
+		m.__expectations__ = ExpectationSet(
+		    Expectation('foo', returns=1),
+		    Expectation('foo', returns=2),
+		    delegate=self.d,
+		)
 		self.assertEqual(m.foo(), 1)
 		self.assertEqual(m.foo(), 2)
 		with self.assertRaises(AssertionError):
