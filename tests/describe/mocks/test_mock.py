@@ -12,18 +12,18 @@ class TestMockExpectationIntegration(TestCase):
 		class Foo(object):
 			pass
 		m = Mock(instance_of=Foo)
-		m.expects.foo().to_return(1)
+		m.expects.foo().and_return(1)
 		self.assertTrue(isinstance(m, Foo))
 		self.assertEqual(m.foo(), 1)
 
 	def test_it_can_return_attr(self):
 		m = Mock()
-		m.expects.foo.to_return(2)
+		m.expects.foo.and_return(2)
 		self.assertEqual(m.foo, 2)
 
 	def test_it_should_raise_error(self):
 		m = Mock()
-		m.expects.foo().to_raise(TypeError)
+		m.expects.foo().and_raise(TypeError)
 		with self.assertRaises(TypeError):
 			m.foo()
 		with self.assertRaises(AssertionError):
@@ -31,14 +31,14 @@ class TestMockExpectationIntegration(TestCase):
 
 	def test_it_should_return_expectation(self):
 		m = Mock()
-		m.expects.foo().to_return(4)
+		m.expects.foo().and_return(4)
 		self.assertEqual(m.foo(), 4)
 		with self.assertRaises(AssertionError):
 			m.foo()
 
 	def test_it_can_expect_item_access(self):
 		m = Mock()
-		m.expects['foo'].to_return(4)
+		m.expects['foo'].and_return(4)
 		with self.assertRaises(AssertionError):
 			m['bar']
 		self.assertEqual(m['foo'], 4)
@@ -47,7 +47,7 @@ class TestMockExpectationIntegration(TestCase):
 
 	def test_it_can_expect_invocation(self):
 		m = Mock()
-		m.expects().to_return(4)
+		m.expects().and_return(4)
 		with self.assertRaises(AssertionError):
 			m('foo')
 		self.assertEqual(m(), 4)
@@ -56,12 +56,12 @@ class TestMockExpectationIntegration(TestCase):
 
 	def test_it_should_return_for_magic_method(self):
 		m = Mock()
-		m.expects.__eq__(f.ANYTHING).to_return(True)
+		m.expects.__eq__(f.ANYTHING).and_return(True)
 		self.assertTrue(m == 4)
 
 	def test_it_should_expect_arguments(self):
 		m = Mock()
-		m.expects.foo(3).to_return(2)
+		m.expects.foo(3).and_return(2)
 		with self.assertRaises(AssertionError):
 			m.foo()
 		with self.assertRaises(AssertionError):

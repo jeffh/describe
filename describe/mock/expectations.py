@@ -183,10 +183,10 @@ class ExpectationBuilder(object):
 			self.add_invocations(self.attrname, value, self.args, self.kwargs)
 		self.add_expectations(constructor(self.attrname, value, self.args, self.kwargs))
 
-	def to_raise(self, error):
+	def and_raise(self, error):
 		self.__expect(Expectation.raises, error)
 
-	def to_return(self, value):
+	def and_return(self, value):
 		self.__expect(Expectation, value)
 
 

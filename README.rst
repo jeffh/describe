@@ -28,9 +28,9 @@ Or use the latest `development version`_::
 
 Then you can import it::
 
-  from describe import Stub, expect  # Primary features
-  from describe import flags         # Argument matching
-  from describe import with_metadata # Minor feature
+  from describe import Mock, stub, expect  # Primary features
+  from describe import flags               # Argument matching
+  from describe import with_metadata       # Minor feature
 
 .. _pip: http://www.pip-installer.org/en/latest/index.html
 .. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall
@@ -85,22 +85,26 @@ Currently, describe makes no distinction between Mocks and Stubs.
 
 They are created using the `stub` function::
 
-    from describe import Stub
+    from describe import stub
 
 Once imported, you can create stubs.  Unless otherwise changed, nearly all interactions
 with a stub will return either the same stub instance or a new stub.
 
-Optionally, you can provide a name to the stub of the created object. Use the ``with_attrs``
-method to quickly assign properties::
+The simpliest example is to create a stub with no arguments::
 
-    die = Stub().with_attrs(sides=6)
+    die = stub()
+    die.roll() # => Returns die
+
+You can create stubs with predefined attributes::
+
+    die = stub().with_attrs(sides=6)
     die.sides # => 6
 
 You can use the ``with_class_attrs`` to override magic methods. This is useful if you only
 want to quickly change the way the stub responds to a magic method. Remember that functions
 given must accept self::
 
-    die = Stub().with_class_attrs(__eq__=lambda s: True)
+    die = stub().with_class_attrs(__eq__=lambda s: True)
     die.roll()  # => 4
     die == None # => True
 
@@ -114,7 +118,7 @@ For shorthand, there's an ``attr`` class method with will stub out an attribute 
 object and restore it when ``verify_expectations`` is called::
 
     myobj.myattr = 3
-    stub = Stub.attr(myobj, 'myattr')
+    stub = stub.attr(myobj, 'myattr')
     myobj.myattr # => stub returned by Stub.attr
     stub.verify_expectations()
     myobj.myattr # => 3
@@ -126,7 +130,7 @@ Setting Expectations
 Mocks expect a specific set of interactions to take place. We can do this using the
 ``expects`` property::
 
-    die = Stub()
+    die = stub()
     stub.expects.roll().and_returns(6)
     die.roll() # => 6
     die.verify_expectations() # noop
@@ -135,12 +139,12 @@ Here, the stub expects the roll method to be called. The verify_expectations met
 the assertion that roll was indeed called. If not, an assertion is raised::
 
     # methods prefixed with 'and_' return the stub.
-    die = Stub().expects.roll().and_returns(6)
+    die = stub().expects.roll().and_returns(6)
     die.verify_expectations() # raises AssertionError
 
 The ``expects`` property can do index access and invocation::
 
-    die = Stub().expects[4].and_returns(2)
+    die = stub().expects[4].and_returns(2)
     die[4] # => 2
     die.expects('fizz').and_returns('buzz')
     die('fizz') # => 'buzz'
@@ -152,7 +156,7 @@ It is also possible to expect types of incoming values::
 
     from describe import flags
 
-    die = Stub()
+    die = stub()
     die.expects.roll(flags.ANY_ARG).and_returns(3)
     die.roll(1) # => 3
     die.roll(2) # => 3
@@ -162,7 +166,7 @@ This is particularly useful for matching variable arguments or keyword arguments
 
     from describe import flags
 
-    die = Stub()
+    die = stub()
     die.expects.roll(flags.ANY_ARGS, flags.ANY_KWARGS).and_returns(3)
     die.roll(3, 4, 5, 6) # => 3
     die.roll(foo='bar') # => 3
@@ -181,7 +185,7 @@ Magic methods
 Most magic methods are return stubs, similar to the behavior of Dingus_. You can
 directly access these magic method stubs::
 
-    die = Stub()
+    die = stub()
     die.__eq__.expects(2).and_returns(True)
     die.__eq__.expects(1).and_returns(False)
     die == 2 # => True
@@ -197,7 +201,7 @@ Returning the Favor
 The ``and_returns`` accepts any number of arguments, returning the given values it was
 provided. It repeats the last value indefinitely::
 
-    die = Stub().expects.foo().and_returns(1, 2, 3)
+    die = stub().expects.foo().and_return(1, 2, 3)
     die.foo() # => 1
     die.foo() # => 2
     die.foo() # => 3
@@ -222,7 +226,7 @@ Prior to any of the ``and_`` methods, you can also use a quantifier, indicating 
 times the given method should be called. By default, all expectations set, assume that
 they should be invoked at least once unless otherwise set like this::
 
-    die = Stub().expects.roll(2).at_least(2).and_returns(True)
+    die = stub().expects.roll(2).at_least(2).and_returns(True)
     die.expects.roll(3).at_most(1).and_returns(True)
     die.expects.roll(4).exactly(3).and_returns(True)
 
