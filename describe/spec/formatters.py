@@ -7,7 +7,7 @@ import sys
 import traceback
 import types
 
-from describe.spec.utils import tabulate, filter_traceback
+from describe.spec.utils import tabulate, filter_traceback, str_traceback
 
 
 def prettyprint_camelcase(name):
@@ -26,12 +26,25 @@ def prettyprint(name):
 
 
 class ErrorFormat(object):
-    "Represents an error in an example and all it's associated data."
-    def __init__(self, name, error, traceback, parents=(), stdout='', stderr=''):
+    """Represents an error in an example and all it's associated data.
+
+    Parameters:
+        - name is the descriptive name of the example.
+        - error is the exception that occurred
+        - traceback is the stacktrace of the exception being raised
+        - parents is a list of descriptive describes & contexts above this
+          example.
+        - stdout is the stdout contents
+        - stderr is the stderr contents
+        - filter_traceback filters traceback belonging to the describe module
+          if set to True
+    """
+    def __init__(self, name, error, traceback, parents=(), stdout='', stderr='', filter_traceback=True):
         self.name = name
         self.error, self.traceback, = error, traceback
         self.stdout, self.stderr = stdout, stderr
         self.parents = parents
+        self.filter_traceback = filter_traceback
         #assert isinstance(self.error, Exception) or (
         #    isinstance(self.error, type) and issubclass(self.error, Exception)), \
         #            "Error must be an Exception subclass"
@@ -64,7 +77,10 @@ class ErrorFormat(object):
     def _traceback(self):
         sb = []
         if self.traceback:
-            sb.append(filter_traceback(self.error, self.traceback or None))
+            if self.filter_traceback:
+                sb.append(filter_traceback(self.error, self.traceback or None))
+            else:
+                sb.append(str_traceback(self.error, self.traceback or None))
         if self.stdout:
             sb.append(self._stdout())
         if self.stderr:

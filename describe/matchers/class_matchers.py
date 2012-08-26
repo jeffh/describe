@@ -1,7 +1,10 @@
 import re
+import sys
 
 from describe.matchers.core import MatcherBase, matcher_repository
 
+
+STDOUT = sys.stdout
 
 class TruthyMatcher(MatcherBase):
     MESSAGE = 'be true'
@@ -128,7 +131,7 @@ class ExceptionMatcher(MatcherBase):
         return repr(obj)
 
     def get_postfix_message(self, actual_value):
-        if callable(actual_value):
+        if callable(actual_value) or hasattr(actual_value, 'evaluate'):
             msg = self.MESSAGE
         else:
             msg = self.FN_MESSAGE

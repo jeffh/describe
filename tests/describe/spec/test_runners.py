@@ -34,7 +34,11 @@ class DescribeExampleRunner(TestCase):
 
         example = Example(Mock(), [], [])
         subject = ExampleRunner(example, Mock())
-        subject.run()
+        successes, errors, skips = subject.run()
+
+        self.assertEqual(successes, 1)
+        self.assertEqual(errors, 0)
+        self.assertEqual(skips, 0)
 
         self.assertEqual(example.real_time, 1)
         self.assertEqual(example.user_time, 2)
@@ -48,7 +52,7 @@ class DescribeExampleRunner(TestCase):
         subject = ExampleRunner(example, Mock())
         self.assertFalse(subject.has_ran)
 
-        self.assertTrue(subject.execute())
+        subject.execute()
 
         self.assertTrue(subject.has_ran)
         testfn.assert_called_once_with()

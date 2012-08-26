@@ -4,7 +4,7 @@ from mock import Mock, patch
 
 from describe.mock.patching import patch as patcher
 from describe.mock.patching import DictReplacement
-from describe.spec.utils import with_metadata
+from describe.utils import with_metadata
 from describe.mock.stub import stub
 
 import os.path

@@ -50,13 +50,14 @@ class Registry(object):
 
     @property
     def mocks(self):
+        from describe.mock import Mock
         return [stub for stub in self.stubs if isinstance(stub, Mock)]
 
     def verify_mocks(self):
+        from describe.mock import verify_mock
         for mock in self.mocks:
-            mock.verify_expectations()
+            verify_mock(mock)
 
         for fn in self.post_verification:
-            print fn
             fn()
 

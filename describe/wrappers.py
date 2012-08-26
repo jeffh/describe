@@ -151,10 +151,10 @@ class Expectation(WrapperBase):
     @classmethod
     def to_raise_error(cls, error):
         def verify(err):
-            def reraise():
+            def with_block():
                 if err is not None:
                     raise err
-            return cls(reraise).with_args().to.raise_error(error)
+            return cls(with_block).with_args().to.raise_error(error)
         return ExceptionBlock(verify)
     to_raise = raise_error = to_raise_error
 

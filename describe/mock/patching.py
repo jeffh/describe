@@ -2,7 +2,7 @@ import sys
 from types import ModuleType
 from functools import wraps
 
-from describe.spec.utils import Replace, with_metadata
+from describe.utils import Replace, with_metadata
 from describe.mock.stub import stub
 
 __all__ = ['patch']

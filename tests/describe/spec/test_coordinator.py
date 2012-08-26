@@ -30,11 +30,14 @@ class DescribeSpecCoordinator(TestCase):
 
     @patch('describe.spec.coordinator.ExampleRunner')
     def test_executes_spec(self, runner):
-        file_finder, spec_finder, formatter  = Mock(), Mock(), Mock()
+        file_finder, spec_finder, formatter = (
+            Mock(), Mock(), Mock()
+        )
         example_group = ExampleGroup('group', examples=[
             Example('foobar'),
         ])
         instance = runner.return_value = Mock()
+        instance.run = Mock(return_value=[1, 2, 3])
 
         subject = SpecCoordinator(file_finder, spec_finder, formatter)
 
@@ -45,11 +48,14 @@ class DescribeSpecCoordinator(TestCase):
     def test_run_getcwd_as_default(self, getcwd):
         subject = SpecCoordinator(Mock(), Mock(), Mock())
         subject.find_specs = Mock()
-        subject.execute = Mock()
+        subject.execute = Mock(return_value=[1, 2, 3])
 
         getcwd.return_value = '/foobar/'
 
-        subject.run()
+        successes, failures, skipped = subject.run()
+        self.assertEqual(successes, 1)
+        self.assertEqual(failures, 2)
+        self.assertEqual(skipped, 3)
 
         getcwd.assert_called_once_with()
 
@@ -58,7 +64,7 @@ class DescribeSpecCoordinator(TestCase):
 
         results = [Mock(), Mock()]
         subject.find_specs = Mock(return_value=results)
-        subject.execute = Mock(return_value=Mock())
+        subject.execute = Mock(return_value=[1, 2, 3])
 
         subject.run(('/foo/', '/bar/'))
 

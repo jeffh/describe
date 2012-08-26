@@ -5,6 +5,7 @@ from itertools import izip_longest
 from cStringIO import StringIO
 
 from describe.spec.utils import CallOnce, accepts_arg, func_equal, tabulate
+from describe import run
 
 
 class SpecFile(object):
@@ -36,6 +37,13 @@ class Context(object):
         self._properties = dict(properties or {})
         self._parent = parent
         super(self.__class__, self).__init__()
+
+    def inject_into_self(self, fn):
+        # inject into self
+        if getattr(fn, 'im_self', None):
+            props = self._combined_properties()
+            for name, value in props.items():
+                setattr(fn.im_self, name, value)
 
     def __getitem__(self, name):
         if name not in self._items and self._parent:
@@ -99,8 +107,8 @@ class Context(object):
     def __repr__(self):
         return "<%s(%r)[%r]>" % (
             self.__class__.__name__,
-            self.__combined_properties(),
-            self.__combined_items(),
+            self._combined_properties(),
+            self._combined_items(),
         )
 
 
@@ -166,11 +174,13 @@ class Example(object):
 
     def before(self, context):
         "Invokes all before functions with context passed to them."
+        run.before_each.execute(context)
         self._invoke(self._before, context)
 
     def after(self, context):
         "Invokes all after functions with context passed to them."
         self._invoke(self._after, context)
+        run.after_each.execute(context)
 
     def _invoke(self, funcs, context):
         assert context, "Context needs to be provided for Example to run."
@@ -179,6 +189,7 @@ class Example(object):
             if accepts_arg(fn):
                 fn(context)
             else:
+                context.inject_into_self(fn)
                 fn()
 
     def _filter_callables(self, fns):

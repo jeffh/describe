@@ -30,6 +30,8 @@ class Options(object):
             help="Prints results in color. (default: %(default)s)")
         parser.add_argument('--version', '-v', action='store_true',
             help="Returns version number of %(prog)s.")
+        parser.add_argument('--formatter', '-f', default='standard',
+            help="Sets the output format. (Defaults to standard)")
         parser.add_argument('--include', '-i', dest='paths', metavar='DIR', action='append',
             default=[], help="Adds the given path to sys.path before running.")
 
@@ -73,14 +75,16 @@ class Runner(object):
 
         # simple for now
         executor = SpecCoordinator()
-        executor.run(options.run_targets)
+        num_successes, num_errors, num_skips = executor.run(options.run_targets)
 
-        return 0
+        return num_errors
+
 
 def main(progn, *args):
     options = Options()
     runner = Runner(options)
     return runner.run(progn, *args)
+
 
 if __name__ == '__main__':
     sys.exit(main(*sys.argv))

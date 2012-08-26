@@ -6,15 +6,20 @@ from cStringIO import StringIO
 
 from describe.mock.registry import Registry
 from describe.spec.containers  import Context, ExampleGroup, Example
-from describe.spec.utils import Benchmark, Replace, CallOnce, \
+from describe.utils import Replace
+from describe.spec.utils import Benchmark, CallOnce, \
         accepts_arg, get_true_function, func_equal, tabulate, NOOP
-
+from describe import run
 
 
 class ExampleRunner(object):
     def __init__(self, example, formatter):
         self.example, self.formatter = example, formatter
         self.has_ran = False
+        self.is_root_runner = False
+        self.num_successes = 0
+        self.num_failures = 0
+        self.num_skipped = 0
 
     def __repr__(self):
         return "ExampleRunner(%r, %r)" % (self.example, self.formatter)
@@ -43,11 +48,13 @@ class ExampleRunner(object):
             self.stderr = stderr or StringIO()
         self._record_start_example(self.formatter)
         try:
-            with total_benchmark, Replace(sys, 'stdout', self.stdout), \
-                    Replace(sys, 'stderr', self.stderr):
+            with total_benchmark, Replace(sys, 'stdout', self.stdout), Replace(sys, 'stderr', self.stderr):
                 self._setup()
                 self._execute()
                 self._teardown()
+        except Exception as e:
+            self.example.error = e
+            self.example.traceback = sys.exc_info()[2] #traceback.format_exc()
         finally:
             self.example.real_time = total_benchmark.total_time
             self._record_end_example(self.formatter)
@@ -60,8 +67,10 @@ class ExampleRunner(object):
         "Like execute, but records a skip if the should_skip method returns True."
         if self.should_skip():
             self._record_skipped_example(self.formatter)
-            return
-        self.execute(context, stdout, stderr)
+            self.num_skipped += 1
+        else:
+            self.execute(context, stdout, stderr)
+        return self.num_successes, self.num_failures, self.num_skipped
 
     #################### Internal Methods ####################
     def _setup(self):
@@ -73,6 +82,8 @@ class ExampleRunner(object):
         #for parent in reversed(self.example.parents):
         #    c._update_properties(locals_from_function(parent))
         self.context = c
+        if self.is_root_runner:
+            run.before_all.execute(self.context)
         self.example.before(self.context)
 
     def _is_collection(self):
@@ -99,7 +110,12 @@ class ExampleRunner(object):
     def _execute_example_group(self):
         "Handles the execution of Example Group"
         for example in self.example:
-            self.__class__(example, self.formatter).run(self.context)
+            runner = self.__class__(example, self.formatter)
+            runner.is_root_runner = False
+            successes, failures, skipped = runner.run(self.context)
+            self.num_successes += successes
+            self.num_failures += failures
+            self.num_skipped += skipped
 
     def _execute_example(self):
         "Handles the execution of the Example"
@@ -109,19 +125,23 @@ class ExampleRunner(object):
                 if accepts_arg(self.example.testfn):
                     self.example.testfn(self.context)
                 else:
+                    self.context.inject_into_self(self.example.testfn)
                     self.example.testfn()
+                self.num_successes += 1
         except KeyboardInterrupt:
             # bubble interrupt for canceling spec execution
             raise
-        except Exception as e:
-            self.example.error = e
-            self.example.traceback = sys.exc_info()[2] #traceback.format_exc()
+        except:
+            raise
+            self.num_failures += 1
         finally:
             self.example.user_time = test_benchmark.total_time
 
     def _teardown(self):
         "Handles the restoration of any potential global state set."
         self.example.after(self.context)
+        if self.is_root_runner:
+            run.after_all.execute(self.context)
         #self.context = self.context._parent
         self.has_ran = True
 

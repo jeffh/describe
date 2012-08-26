@@ -2,12 +2,19 @@ import types
 import traceback
 import inspect
 import time
-from functools import wraps, partial
 
 
-CURRENT_PACAKGE = __package__.split('.', 1)[0]
+CURRENT_PACKAGE = __package__.split('.', 1)[0]
 
-def filter_traceback(error, tb, CONST=CURRENT_PACAKGE):
+def str_traceback(error, tb):
+    """Returns a string representation of the traceback.
+    """
+    if not isinstance(tb, types.TracebackType):
+        return tb
+
+    return ''.join(traceback.format_exception(error.__class__, error, tb))
+
+def filter_traceback(error, tb, ignore_pkg=CURRENT_PACKAGE):
     """Filtered out all parent stacktraces starting with the given stacktrace that has
     a given variable name in its globals.
     """
@@ -15,7 +22,7 @@ def filter_traceback(error, tb, CONST=CURRENT_PACAKGE):
         return tb
 
     def in_namespace(n):
-        return n.startswith(CONST + '.') or n == CONST
+        return n and (n.startswith(ignore_pkg + '.') or n == ignore_pkg)
     # Skip test runner traceback levels
     while tb and in_namespace(tb.tb_frame.f_globals['__package__']):
         tb = tb.tb_next
@@ -26,29 +33,6 @@ def filter_traceback(error, tb, CONST=CURRENT_PACAKGE):
         limit += 1
 
     return ''.join(traceback.format_exception(error.__class__, error, starting_tb, limit))
-
-
-def with_metadata(decorator):
-    """Creates a new decorator that records the function metadata on the generated
-    decorated function.
-    """
-    @wraps(decorator)
-    def new_decorator(func):
-        decorated = decorator(func)
-        # if the decorator is a "no-op", do nothing
-        if not callable(decorator):
-            return decorated
-        # record data
-        decorated.__decorator__ = decorator
-
-        if isinstance(func, partial):
-            # partials are objects that store the true function somewhere else
-            decorated.__wraps__ = func.keywords['wrapped']
-        else:
-            decorated.__wraps__ = func
-        return decorated
-
-    return new_decorator
 
 
 # def returns_locals(func):
@@ -241,7 +225,7 @@ def accepts_arg(obj):
 
 class CallOnce(object):
     "Wraps a function that will invoke it only once. Subsequent calls are silently ignored."
-    COPY_FIELDS = ('__doc__', '__name__', '__module__', 'func_name', 'func_code')
+    COPY_FIELDS = ('__doc__', '__name__', '__module__', 'func_name', 'func_code', 'im_class', 'im_func', 'im_self')
     def __init__(self, func, copy=None):
         self.func = func or None
         self.called = False
@@ -275,45 +259,6 @@ def tabulate(string, times=1, indent=4, char=' ', ignore_first=False):
     for i, line in enumerate(string.split('\n')):
         sb.append(char * indent * times + line if (not ignore_first or i != 0) and line.strip() != '' else line)
     return '\n'.join(sb)
-
-
-class Replace(object):
-    def __init__(self, obj, name, value, **kwargs):
-        self.obj, self.name, self.value = obj, name, value
-        self.noop = kwargs.get('noop', False)
-
-    def set_noop(self, value):
-        self.noop = bool(value)
-        return self
-
-    def start(self):
-        if self.noop: return self
-        self.original = getattr(self.obj, self.name)
-        setattr(self.obj, self.name, self.value)
-        return self
-    replace = start
-
-    def stop(self):
-        if self.noop: return self
-        setattr(self.obj, self.name, self.original)
-        return self
-    restore = stop
-
-    def __enter__(self):
-        self.start()
-        return self.value
-
-    def __exit__(self, type, info, exception):
-        self.stop()
-
-    def __call__(self, func):
-        def decorator(fn):
-            @wraps(fn)
-            def decorated(*args, **kwargs):
-                with self as obj:
-                    return fn(obj, *args, **kwargs)
-            return decorated
-        return with_metadata(decorator)(func)
 
 
 class Benchmark(object):

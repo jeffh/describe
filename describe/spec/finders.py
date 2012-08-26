@@ -3,7 +3,8 @@ import sys
 import inspect
 from cStringIO import StringIO
 
-from describe.spec.utils import locals_from_function, Replace
+from describe.utils import Replace
+from describe.spec.utils import locals_from_function
 from describe.spec.containers import SpecFile, Context, Example, ExampleGroup
 
 

@@ -1,7 +1,7 @@
 from describe.mock.utils import TWO_OPS_FULL, ONE_OPS, NIL
 from describe.mock.expectations import Invoke, ExpectationList, ExpectationSet, Expectation
 from describe.mock.mock import Mock
-from describe.spec.utils import Replace
+from describe.utils import Replace
 
 
 def stub(**attributes):
