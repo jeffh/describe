@@ -78,6 +78,8 @@ examples until I get proper documentation::
 Mocks and Stubs (Doubles)
 ===============
 
+**Warning, stubs are in a refactor phase**
+
 Mocks are used to abstract out classes that are not being tested. They can customized to return
 specific values to verify the target's class interaction with other classes.
 
@@ -93,11 +95,11 @@ with a stub will return either the same stub instance or a new stub.
 The simpliest example is to create a stub with no arguments::
 
     die = stub()
-    die.roll() # => Returns die
+    die.roll()
 
 You can create stubs with predefined attributes::
 
-    die = stub().with_attrs(sides=6)
+    die = stub(sides=6)
     die.sides # => 6
 
 You can use the ``with_class_attrs`` to override magic methods. This is useful if you only
