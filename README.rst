@@ -28,9 +28,9 @@ Or use the latest `development version`_::
 
 Then you can import it::
 
-  from describe import Mock, stub, expect  # Primary features
-  from describe import flags               # Argument matching
-  from describe import with_metadata       # Minor feature
+  from describe import Mock, stub, expect, verify_mock  # Primary features
+  from describe import flags                            # Argument matching
+  from describe import with_metadata                    # Minor feature
 
 .. _pip: http://www.pip-installer.org/en/latest/index.html
 .. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall
@@ -78,14 +78,28 @@ examples until I get proper documentation::
 Mocks and Stubs (Doubles)
 ===============
 
-**Warning, stubs are in a refactor phase**
+Mocks and stubs are used to abstract out classes that are not being tested.
+They can customized to return specific values to verify the target's class
+interaction with other classes.
 
-Mocks are used to abstract out classes that are not being tested. They can customized to return
-specific values to verify the target's class interaction with other classes.
+Besides construction, both Mocks and stubs are mostly identical. The only
+exception is that Mocks can be asserted to verify the series of calls and
+invocations on it are as expected.
 
-Currently, describe makes no distinction between Mocks and Stubs.
+Mocks are created using the `Mock` class::
 
-They are created using the `stub` function::
+    from describe import Mock
+    m = Mock()
+
+Mock supports the following arguments:
+
+- ``name`` - The name of the mock when using repr. Purely for debugging.
+- ``instance_of`` - The class this instance should be a subclass of, this
+  allows it to pass isinstance and issubclass tests.
+- ``ordered`` - Whether expectations set on this mock should be ordered.
+  Defaults to True
+
+Stubs are created using the `stub` function::
 
     from describe import stub
 
@@ -95,54 +109,56 @@ with a stub will return either the same stub instance or a new stub.
 The simpliest example is to create a stub with no arguments::
 
     die = stub()
-    die.roll()
+    die.roll() # new stub instance
 
 You can create stubs with predefined attributes::
 
     die = stub(sides=6)
     die.sides # => 6
 
-You can use the ``with_class_attrs`` to override magic methods. This is useful if you only
-want to quickly change the way the stub responds to a magic method. Remember that functions
-given must accept self::
+Or set them manually::
 
-    die = stub().with_class_attrs(__eq__=lambda s: True)
-    die.roll()  # => 4
+    die.sides = 8
+    die.sides # => 8
+
+Magic methods for stubs defer to their appropriate instance methods. So
+settings methods works as intended::
+
+    die = stub(__eq__=lambda s: True)
     die == None # => True
+    die == 2 # => True
 
-But there are better ways to customize the behavior of most magic methods.
+But there's another way to customize methods we'll see below.
+
+Since stub utilizes some magic methods for its all its work, the following
+should not be overridden:
+
+- ``__repr__``
+- ``__getattr__``
+- ``__init__``
 
 
 Stubbing Attributes
 -------------------
 
-For shorthand, there's an ``attr`` class method with will stub out an attribute of a given
-object and restore it when ``verify_expectations`` is called::
+For shorthand, there's an ``stub_attr`` function which will stub out an
+attribute of a given object and restore it after the with block ends::
 
-    myobj.myattr = 3
-    stub = stub.attr(myobj, 'myattr')
-    myobj.myattr # => stub returned by Stub.attr
-    stub.verify_expectations()
-    myobj.myattr # => 3
+    myobj.myattr = 4
+    with stub_attr(myobj, 'myattr'):
+        myobj.myattr # => stub returned
+    myobj.myattr # => returns 4
 
 
 Setting Expectations
 --------------------
 
-Mocks expect a specific set of interactions to take place. We can do this using the
-``expects`` property::
+We can customize methods we expect, with return values and parameters.
+This is done using the ``expects`` property::
 
     die = stub()
     stub.expects.roll().and_returns(6)
     die.roll() # => 6
-    die.verify_expectations() # noop
-
-Here, the stub expects the roll method to be called. The verify_expectations method performs
-the assertion that roll was indeed called. If not, an assertion is raised::
-
-    # methods prefixed with 'and_' return the stub.
-    die = stub().expects.roll().and_returns(6)
-    die.verify_expectations() # raises AssertionError
 
 The ``expects`` property can do index access and invocation::
 
@@ -150,6 +166,17 @@ The ``expects`` property can do index access and invocation::
     die[4] # => 2
     die.expects('fizz').and_returns('buzz')
     die('fizz') # => 'buzz'
+
+Or raise exceptions::
+
+    die.expects.roll().and_raises(TypeError)
+    die.roll() # => raises TypeError
+
+Unlike stubs, Mocks will raise errors if expectations are not set before
+they are invoked::
+
+    m = Mock()
+    m.foo() # raises AssertionError
 
 Argument Filtering Expectation
 ------------------------------
@@ -188,8 +215,8 @@ Most magic methods are return stubs, similar to the behavior of Dingus_. You can
 directly access these magic method stubs::
 
     die = stub()
-    die.__eq__.expects(2).and_returns(True)
-    die.__eq__.expects(1).and_returns(False)
+    die.expects(2).__eq__.and_returns(True)
+    die.expects(1).__eq__.and_returns(False)
     die == 2 # => True
     die == 1 # => False
 
@@ -199,6 +226,16 @@ The only notable exception are type-specific magic methods, such as
 
 Returning the Favor
 -------------------
+
+Expectations can be stacked. The last expectation is returned if no others are
+available::
+
+    die.expects.roll().and_returns(2)
+    die.expects.roll().and_returns(3)
+    die.roll() # => 2
+    die.roll() # => 3
+    die.roll() # => 3
+
 
 The ``and_returns`` accepts any number of arguments, returning the given values it was
 provided. It repeats the last value indefinitely::
@@ -221,32 +258,15 @@ values:
 Except for ``and_yields``, all methods repeat the last value given to it.
 
 
-Counting Expectations
----------------------
-
-Prior to any of the ``and_`` methods, you can also use a quantifier, indicating how many
-times the given method should be called. By default, all expectations set, assume that
-they should be invoked at least once unless otherwise set like this::
-
-    die = stub().expects.roll(2).at_least(2).and_returns(True)
-    die.expects.roll(3).at_most(1).and_returns(True)
-    die.expects.roll(4).exactly(3).and_returns(True)
-
-    # ... use die ...
-
-    die.verify_expectations()
-
-
 Convenience Methods
 -------------------
 
-In many scenarios, you need to patch objects from existing libraries. This can be prone
-to error, as you need to ensure restoration after the spec runs. For convenience,
-Describe provides a set of functions to monkey-patch existing objects: returning
-Stub instead of their normal value.
+In many scenarios, you need to patch objects from existing libraries. This can
+be prone to error, as you need to ensure restoration after the spec runs. For
+convenience, Describe provides a set of functions to monkey-patch existing
+objects: returning Stub instead of their normal value.
 
-Patching is similar to Mock_ in design, but also with isolation patching offered in
-Mote_.
+Patching is similar to Mock_ in design.
 
 All patching is done from the patch object::
 

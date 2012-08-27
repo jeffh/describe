@@ -10,16 +10,16 @@ TWO_OPS_FULL = TWO_OPS + ['r' + o for o in TWO_OPS] + ['i' + o for o in TWO_OPS]
 ONE_OPS = 'neg pos abs invert enter exit eq ne'.split(' ')
 
 class NILObject(object):
-	pass
+    pass
 
 NIL = NILObject
 
 
 def get_args_str(args, kwargs):
-	args = []
-	if args and not is_flag(args):
-		args += [repr(a) for a in args]
-	if kwargs and not is_flag(kwargs):
-		for k, v in kwargs.items():
-			args.append('%s=%r' % (k, v))
-	return ', '.join(args)
+    args = []
+    if args and not is_flag(args):
+        args += [repr(a) for a in args]
+    if kwargs and not is_flag(kwargs):
+        for k, v in kwargs.items():
+            args.append('%s=%r' % (k, v))
+    return ', '.join(args)

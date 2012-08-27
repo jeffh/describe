@@ -185,11 +185,31 @@ class ExpectationBuilder(object):
             self.add_invocations(self.attrname, value, self.args, self.kwargs)
         self.add_expectations(constructor(self.attrname, value, self.args, self.kwargs))
 
-    def and_raise(self, error):
-        self.__expect(Expectation.raises, error)
+    def and_raises(self, *errors):
+        "Expects an error or more to be raised from the given expectation."
+        for error in errors:
+            self.__expect(Expectation.raises, error)
 
-    def and_return(self, value):
-        self.__expect(Expectation, value)
+    def and_returns(self, *values):
+        "Expects a value or more to be raised from the given expectation."
+        for value in values:
+            self.__expect(Expectation, value)
+
+    def and_calls(self, *funcs):
+        """Expects the return value from one or more functions to be raised
+        from the given expectation.
+        """
+        for fn in funcs:
+            self.__expect(Expectation, Invoke(fn))
+
+    def and_yields(self, *values):
+        """Expects the return value of the expectation to be a generator of the
+        given values
+        """
+        def generator():
+            for value in values:
+                yield value
+        self.__expect(Expectation, Invoke(generator))
 
     def called(self):
         self.__expect(Expectation, None)

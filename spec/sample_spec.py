@@ -24,7 +24,7 @@ class DescribeMathOperations:
         @patch('time.time')
         def it_failed(mod, c):
             # TODO: this doesn't get run
-            mod.expects().and_return(4)
+            mod.expects().and_returns(4)
             expect(time.time()) == 4
 
     class DescribeContext:

@@ -7,21 +7,21 @@ from describe import expect, patch, flags, Mock, stub
 class DescribeSettingExpectations(TestCase):
     def test_it_accepts_any_arg(self):
         die = stub()
-        die.expects.roll(flags.ANY_ARG).and_return(3)
+        die.expects.roll(flags.ANY_ARG).and_returns(3)
         self.assertEqual(die.roll(1), 3)
         self.assertEqual(die.roll(2), 3)
         self.assertTrue(isinstance(die.roll(1, 2), Mock)) # => stub instance
 
     def test_it_accepts_variable_args_and_kwargs(self):
         die = stub()
-        die.expects.roll(flags.ANY_ARGS, flags.ANY_KWARGS).and_return(3)
+        die.expects.roll(flags.ANY_ARGS, flags.ANY_KWARGS).and_returns(3)
         self.assertEqual(die.roll(3, 4, 5, 6), 3)
         self.assertEqual(die.roll(foo='bar'), 3)
         self.assertEqual(die.roll('the cake', is_a='lie'), 3)
 
     def test_it_accepts_anything(self):
         die = stub()
-        die.expects.roll(flags.ANYTHING).and_return(3)
+        die.expects.roll(flags.ANYTHING).and_returns(3)
         self.assertEqual(die.roll(3, 4, 5, 6), 3)
         self.assertEqual(die.roll(foo='bar'), 3)
         self.assertEqual(die.roll('the cake', is_a='lie'), 3)
@@ -43,7 +43,7 @@ class DescribeConvenienceMethods(TestCase):
         # nothing actually goes to console
         with patch('os.getcwd') as getcwd:
             import os
-            getcwd.expects().and_return('foo')
+            getcwd.expects().and_returns('foo')
             expect(os.getcwd()) == 'foo'
             self.assertEqual(os.getcwd(), 'foo')
 
@@ -57,7 +57,7 @@ class DescribeConvenienceMethods(TestCase):
         @patch('os.getcwd')
         def is_patched(getcwd):
             import os
-            getcwd.expects().and_return('foo')
+            getcwd.expects().and_returns('foo')
             expect(getcwd()) == 'foo'
             self.assertEqual(getcwd(), 'foo')
         is_patched()
@@ -66,7 +66,7 @@ class DescribeConvenienceMethods(TestCase):
         import os
         @patch.object(os, 'getcwd')
         def is_also_patched(getcwd):
-            getcwd.expects().and_return('foo')
+            getcwd.expects().and_returns('foo')
             self.assertEqual(os.getcwd(), 'foo')
         is_also_patched()
 

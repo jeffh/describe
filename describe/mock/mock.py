@@ -54,7 +54,7 @@ class Mock(object):
     def __init__(self, name='Mock', instance_of=None, ordered=True, error_delegate=None):
         self.__name__ = name
         if instance_of:
-            self.__class__ = type('InstancedMock', (instance_of, Mock), {})
+            self.__class__ = type('InstancedMock', (instance_of, self.__class__), {})
         if not error_delegate:
             error_delegate = MockErrorDelegate()
         if ordered:
@@ -62,6 +62,7 @@ class Mock(object):
         else:
             self.__expectations__ = ExpectationSet(delegate=error_delegate)
         self.__invocations__ = set('__%s__' % m for m in MAGIC_METHODS)
+        self.__properties__ = {}
 
         try:
             Registry.get_closest().add(self)
@@ -79,21 +80,23 @@ class Mock(object):
             self.__expectations__.add(*expectations)
         return AttributeCatcher(None, ExpectationBuilderFactory(add_method, add_expectation, MockErrorDelegate()))
 
-    def __getattribute__(self, name):
-        if name in IGNORE_LIST or name in (x for x in IGNORE_LIST if x.startswith('__')):
-            return super(Mock, self).__getattribute__(name)
+    def __getattr__(self, name):
         return process(self.__expectations__, self.__invocations__, name)
 
-    def __setattr__(self, name, value):
-        if name in IGNORE_LIST:
-            return super(Mock, self).__setattr__(name, value)
-        process(self.__expectations__, self.__invocations__, '__setattr__')(name, value)
+    #def __setattr__(self, name, value):
+    #   if name in IGNORE_LIST:
+    #       return super(Mock, self).__setattr__(name, value)
+    #   process(self.__expectations__, self.__invocations__, '__setattr__')(name, value)
 
     def _create_magic(name):
         full_name = '__%s__' % name
         def getter(self):
-            return process(self.__expectations__, self.__invocations__, full_name)
-        return property(getter)
+            if self.__properties__.get(full_name, NIL) is NIL:
+                return process(self.__expectations__, self.__invocations__, full_name)
+            return self.__properties__.get(full_name)
+        def setter(self, value):
+            self.__properties__[full_name] = value
+        return property(getter, setter)
 
     for op in TWO_OPS_FULL + ONE_OPS + MAGIC_METHODS:
         exec('__%s__ = _create_magic(%r)' % (op, op))
