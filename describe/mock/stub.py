@@ -28,25 +28,19 @@ class StubErrorDelegate(object):
         setattr(self.instance, attrname, new_stub)
         return new_stub
 
-    def _expectation_from_history(self, expectations, attrname, args, kwargs):
+    def no_expectations(self, expectations, sender, attrname, args, kwargs):
         recent_history = reversed(expectations.history)
         for expect in recent_history:
             try:
-                return expectations.validate_expectation(expect, attrname, args, kwargs)
+                return expectations.validate_expectation(expect, sender, attrname, args, kwargs)
             except (ExpectationList.FailedToSatisfyArgumentsError, ExpectationList.FailedToSatisfyAttrnameError):
                 pass
-        raise IndexError()
-
-    def no_expectations(self, expectations, attrname, args, kwargs):
-        try:
-            return self._expectation_from_history(expectations, attrname, args, kwargs)
-        except IndexError:
-            return self._new_stub(attrname)
-
-    def fails_to_satisfy_attrname(self, expectations, attrname, args, kwargs, expectation):
         return self._new_stub(attrname)
 
-    def fails_to_satisfy_arguments(self, expectations, attrname, args, kwargs, expectation):
+    def fails_to_satisfy_attrname(self, expectations, sender, attrname, args, kwargs, expectation):
+        return self._new_stub(attrname)
+
+    def fails_to_satisfy_arguments(self, expectations, sender, attrname, args, kwargs, expectation):
         return self._new_stub(attrname)
 
 

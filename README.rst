@@ -177,6 +177,8 @@ they are invoked::
 
     m = Mock()
     m.foo() # raises AssertionError
+    m.expects.foo().and_returns(2)
+    m.foo() # => 2
 
 Argument Filtering Expectation
 ------------------------------
@@ -215,8 +217,8 @@ Most magic methods are return stubs, similar to the behavior of Dingus_. You can
 directly access these magic method stubs::
 
     die = stub()
-    die.expects(2).__eq__.and_returns(True)
-    die.expects(1).__eq__.and_returns(False)
+    die.expects.__eq__(2).and_returns(True)
+    die.expects.__eq__(1).and_returns(False)
     die == 2 # => True
     die == 1 # => False
 
@@ -319,6 +321,74 @@ Like Mock_, temporarily mutating a dictionary-like object is also possible::
 
 .. _Mock: http://www.voidspace.org.uk/python/mock/patch.html
 .. _Mote: https://github.com/garybernhardt/mote
+
+Advanced Mocks
+==============
+
+Some advanced techniques to use mocks. Some of these are currently using
+internal APIs, so it's generally not recommended to use custom implementations.
+
+Mocks actually support two extra arguments:
+
+- ``error_delegate`` - A special object that is delegated to for when an
+  AssertionError is normally raised. This allows you to do custom behaviors.
+  Mocks use `describe.mock.MockErrorDelegate` which raises AssertionErrors.
+  Stubs internally use `describe.mock.StubErrorDelegate` which returns a new
+  stub per attribute.
+- ``expectations`` - A custom internal expectation store for the given mock.
+  Using a custom object here can provide custom expectation handling logic.
+  The ``order`` argument makes the mock dispatch to either
+  `describe.mock.expectations.ExpectationList` or 
+  `describe.mock.expectations.ExpectationSet` respectively when the default
+  value of `None` is provided for this argument.
+
+For example, you can use a custom error_delegate to return stubs only
+when no all expectations are already satisfied::
+
+    from describe import stub
+
+    # Arguments:
+    #   expectations are the current list of expectations that were checked against
+    #      (same as the `expectations` argument to mock)
+    #   sender is the mock object being acted upon
+    #   attrname is the attribute name the mock was being accesessed
+    #   args is a tuple of the arguments called with
+    #   kwargs is a dict of the arguments called with
+    #   expectation is the expectation that caused the failure, if available
+    #   the return value is what the mock should return to the caller
+
+    class WeakerMockErrorDelegate(object):
+        # this gets call when there are no more expectations to check
+        def no_expectations(self, expectations, sender, attrname, args, kwargs):
+            return stub()
+
+        # this gets called when the expectation(s) fail to match the given attribute name
+        def fails_to_satisfy_attrname(self, expectations, sender, attrname, args, kwargs, expectation):
+            raise AssertionError('This mock does not have expectations for attribute: %r' % attrname)
+
+        # this gets called when the expectation(s) fail to match the given arguments
+        def fails_to_satisfy_arguments(self, expectations, sender, attrname, args, kwargs, expectation):
+            raise AssertionError('This mock does not have expectations for: %s(%s)' % (attrname, get_args_str(args, kwargs)))
+
+Although creating custom objects that supports the methods that
+``expectations`` requires, you can reuse existing ExpectationLists to ensure
+global ordering::
+
+    # build a shared expectation list
+    expectations = ExpectationList(delegate=MockErrorDelegate())
+    # create mocks
+    m1 = Mock(expectations=expectations)
+    m2 = Mock(expectations=expectations)
+    # generate expectation order
+    m1.expects.foo().and_returns(1)
+    m2.expects.foo().and_returns(2)
+
+    # this blows up
+    m2.foo() # => AssertionError
+    # this works
+    m1.foo() # => 1
+    m2.foo() # => 2
+
 
 Specs
 =====

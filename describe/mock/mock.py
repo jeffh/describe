@@ -7,13 +7,13 @@ __all__ = ['Mock', 'verify_mock']
 
 
 class MockErrorDelegate(object):
-    def no_expectations(self, expectations, attrname, args, kwargs):
+    def no_expectations(self, expectations, sender, attrname, args, kwargs):
         raise AssertionError('This mock has no expectations')
 
-    def fails_to_satisfy_attrname(self, expectations, attrname, args, kwargs, expectation):
+    def fails_to_satisfy_attrname(self, expectations, sender, attrname, args, kwargs, expectation):
         raise AssertionError('This mock does not have expectations for attribute: %r' % attrname)
 
-    def fails_to_satisfy_arguments(self, expectations, attrname, args, kwargs, expectation):
+    def fails_to_satisfy_arguments(self, expectations, sender, attrname, args, kwargs, expectation):
         raise AssertionError('This mock does not have expectations for: %s(%s)' % (attrname, get_args_str(args, kwargs)))
 
 
@@ -22,10 +22,10 @@ IGNORE_LIST = set((
     '__bases__', '__class__', '__name__', '__call__'
 ))
 
-def process(expectations, invocations, name):
+def process(expectations, invocations, sender, name):
     if name in invocations:
-        return AttributeCatcher(name, expectations)
-    return expectations.get_attribute(name)
+        return AttributeCatcher(sender, name, expectations)
+    return expectations.get_attribute(sender, name)
 
 
 MAGIC_METHODS = ['getitem', 'setitem', 'call']
@@ -36,8 +36,8 @@ class Mock(object):
 
     Only pre-expected methods and attribute accesses are allowed, in the given order.
 
-    name: String. What to name this mock (for repr)
-    instance_of: Class. What class should this mock be an instance of.
+    name: String. What to name this mock (for repr). Defaults to 'Mock'.
+    instance_of: Class. What class should this mock be an instance of. Allows isinstance calls to pass appropriately.
     ordered: Boolean. Should expectations on this object care about ordering?
     error_delegate: An object that handles mock error cases. The object should have 3 methods:
         - no_expectations(expectations, attrname, args, kwargs): When no expectations are available
@@ -48,19 +48,31 @@ class Mock(object):
           expectation in expectations fails to satisfy the given argument flags / filters.
         Each method above should return the value that the Mock should return.
         The error delegate is used for stubs to customize the current mock behavior.
+    expectations: An object that holds all the expectations. It can either be pre-filled with expectations
+        or support the API to add expectations. Using this argument will make the mock ignore the
+        ordered and error_delegate arguments.
+
+        Internally. Mock normally creates one of two classes:
+            - ExpectationSet: (ordered=False) Stores expectations that are order-independant. The mock
+              won't require methods to be called in a particular order.
+            - ExpectationList (ordered=True) Stores expectations that are order-dependant. The makes
+              the mock require methods to be called in a particular order.
 
         The default delegate simply raises assertion errors.
     """
-    def __init__(self, name='Mock', instance_of=None, ordered=True, error_delegate=None):
+    def __init__(self, name='Mock', instance_of=None, ordered=True, error_delegate=None, expectations=None):
         self.__name__ = name
         if instance_of:
             self.__class__ = type('InstancedMock', (instance_of, self.__class__), {})
-        if not error_delegate:
-            error_delegate = MockErrorDelegate()
-        if ordered:
-            self.__expectations__ = ExpectationList(delegate=error_delegate)
+        if expectations is not None:
+            self.__expectations__ = expectations
         else:
-            self.__expectations__ = ExpectationSet(delegate=error_delegate)
+            if not error_delegate:
+                error_delegate = MockErrorDelegate()
+            if ordered:
+                self.__expectations__ = ExpectationList(delegate=error_delegate)
+            else:
+                self.__expectations__ = ExpectationSet(delegate=error_delegate)
         self.__invocations__ = set('__%s__' % m for m in MAGIC_METHODS)
         self.__properties__ = {}
 
@@ -74,14 +86,14 @@ class Mock(object):
 
     @property
     def expects(self):
-        def add_method(name, value, args, kwargs):
+        def add_method(sender, name, value, args, kwargs):
             self.__invocations__.add(name)
         def add_expectation(*expectations):
             self.__expectations__.add(*expectations)
-        return AttributeCatcher(None, ExpectationBuilderFactory(add_method, add_expectation, MockErrorDelegate()))
+        return AttributeCatcher(self, None, ExpectationBuilderFactory(self, add_method, add_expectation, MockErrorDelegate()))
 
     def __getattr__(self, name):
-        return process(self.__expectations__, self.__invocations__, name)
+        return process(self.__expectations__, self.__invocations__, self, name)
 
     #def __setattr__(self, name, value):
     #   if name in IGNORE_LIST:
@@ -92,7 +104,7 @@ class Mock(object):
         full_name = '__%s__' % name
         def getter(self):
             if self.__properties__.get(full_name, NIL) is NIL:
-                return process(self.__expectations__, self.__invocations__, full_name)
+                return process(self.__expectations__, self.__invocations__, self, full_name)
             return self.__properties__.get(full_name)
         def setter(self, value):
             self.__properties__[full_name] = value
@@ -123,5 +135,5 @@ class MissingMockExpectationError(AssertionError):
 def verify_mock(m):
     """Verifies that all mock expectations were called.
     """
-    if len(m.__expectations__):
+    if m.__expectations__.is_fulfilled(m):
         raise MissingMockExpectationError(m)

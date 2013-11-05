@@ -119,7 +119,7 @@ class TestInvocationExpectation(TestCase):
 
 
 @matcher(expects_to='be equal as iterators to %(expected)r')
-def be_equal_iterable(actual, expected):
+def be_equal_to_iterable(actual, expected):
     INVALID = object()
     for act, exp  in izip_longest(iter(actual.evaluate()), iter(expected), fillvalue=INVALID):
         if act != exp or INVALID in (act, exp):
@@ -129,33 +129,33 @@ def be_equal_iterable(actual, expected):
 
 class TestCustomMatcherExpectations(TestCase):
     def setUp(self):
-        expect.add_matcher(be_equal_iterable)
+        expect.add_matcher(be_equal_to_iterable)
 
     def tearDown(self):
-        expect.remove_matcher(be_equal_iterable)
+        expect.remove_matcher(be_equal_to_iterable)
 
     def test_custom_matcher(self):
-        expect([1, 2, 3]).to.be_equal_iterable((1, 2, 3))
+        expect([1, 2, 3]).to.be_equal_to_iterable((1, 2, 3))
 
     def test_custom_matcher_fails(self):
         try:
-            expect([1, 2, 3]).to.be_equal_iterable((1, 2, 3, 4))
+            expect([1, 2, 3]).to.be_equal_to_iterable((1, 2, 3, 4))
         except AssertionError as ae:
             assert ae.message == 'expected [1, 2, 3] to be equal as iterators to (1, 2, 3, 4)'
 
     def test_inverse_of_custom_matcher(self):
-        expect([1, 2, 3]).to_not.be_equal_iterable((1, 2, 3, 4))
+        expect([1, 2, 3]).to_not.be_equal_to_iterable((1, 2, 3, 4))
 
 
 class TestCustomExternalMatcherExpectations(TestCase):
     def test_custom_matcher_as_function_invocation(self):
-        expect([1, 2, 3]).to(be_equal_iterable((1, 2, 3)))
+        expect([1, 2, 3]).to(be_equal_to_iterable((1, 2, 3)))
 
     def test_inverse_of_custom_matcher_as_function_invocation(self):
-        expect([1, 2, 3]).to_not(be_equal_iterable((1, 2, 3, 4)))
+        expect([1, 2, 3]).to_not(be_equal_to_iterable((1, 2, 3, 4)))
 
     def test_custom_matcher_fails(self):
         try:
-            expect([1, 2, 3]).to(be_equal_iterable((1, 2, 3, 4)))
+            expect([1, 2, 3]).to(be_equal_to_iterable((1, 2, 3, 4)))
         except AssertionError as ae:
             assert ae.message == 'expected [1, 2, 3] to be equal as iterators to (1, 2, 3, 4)'

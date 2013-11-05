@@ -26,7 +26,50 @@ class DescribeSettingExpectations(TestCase):
         self.assertEqual(die.roll(foo='bar'), 3)
         self.assertEqual(die.roll('the cake', is_a='lie'), 3)
 
-# "Convenience Methods"
+class DescribeMagicMethods(TestCase):
+    def test_custom_equality(self):
+        die = stub()
+        die.expects.__eq__(2).and_returns(True)
+        die.expects.__eq__(1).and_returns(False)
+        self.assertEqual(die, 2)
+        self.assertNotEqual(die, 1)
+
+class DescribeReturningTheFavor(TestCase):
+    def test_it_supports_multiple_returns(self):
+        die = stub()
+        die.expects.roll().and_returns(2)
+        die.expects.roll().and_returns(3)
+        self.assertEqual(die(), 2)
+        self.assertEqual(die(), 3)
+        self.assertEqual(die(), 3)
+
+    def test_it_supports_multiple_returns_inlined(self):
+        die = stub()
+        die.expects.roll().and_returns(2, 3)
+        self.assertEqual(die(), 2)
+        self.assertEqual(die(), 3)
+        self.assertEqual(die(), 3)
+
+    def test_it_supports_yielding(self):
+        die = stub()
+        die.expects.roll().and_yields(2, 3)
+        self.assertEqual(list(die.roll()), [2, 3])
+
+    def test_it_supports_functions(self):
+        die = stub()
+        die.expects.roll().and_calls(lambda x: 1, lambda x: x)
+        self.assertEqual(die.roll(6), 1)
+        self.assertEqual(die.roll(6), 6)
+        self.assertEqual(die.roll(5), 5)
+
+    def test_it_supports_exceptions(self):
+        die = stub()
+        die.expects.roll().and_raises(TypeError)
+        with self.assertRaises(TypeError):
+            die.roll()
+        with self.assertRaises(TypeError):
+            die.roll()
+
 class DescribeConvenienceMethods(TestCase):
     def test_it_patches_stdout_using_with(self):
         # nothing actually goes to console
@@ -80,5 +123,4 @@ class DescribeConvenienceMethods(TestCase):
         it_replaces_dict()
         expect(os.environ) != {'foo': 'bar'}
         self.assertNotEqual(os.environ, {'foo': 'bar'})
-
 

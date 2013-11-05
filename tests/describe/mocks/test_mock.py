@@ -108,46 +108,77 @@ class TestEmptyMock(TestCase):
         m = Mock()
         verify_mock(m)
 
+class TestMocksWithSharedExpectationList(TestCase):
+    def setUp(self):
+        self.d = MockErrorDelegate()
+        self.expectation_list = ExpectationList(delegate=self.d)
+        self.m1 = Mock(expectations=self.expectation_list)
+        self.m2 = Mock(expectations=self.expectation_list)
+        self.m1.expects.foo().and_returns(1)
+        self.m2.expects.foo().and_returns(2)
+        self.m1.expects.bar().and_returns(3)
+
+    def test_it_passes_if_all_methods_to_be_ordered_across_objects(self):
+        self.assertEquals(self.m1.foo(), 1)
+        self.assertEquals(self.m2.foo(), 2)
+        self.assertEquals(self.m1.bar(), 3)
+        verify_mock(self.m1)
+        verify_mock(self.m2)
+
+    def test_it_fails_if_not_all_methods_were_called_for_that_mock(self):
+        self.assertEquals(self.m1.foo(), 1)
+        self.assertEquals(self.m2.foo(), 2)
+        verify_mock(self.m2)
+        with self.assertRaises(AssertionError):
+            verify_mock(self.m1)
+
+    def test_it_fails_if_methods_are_not_invoked_on_the_correct_object(self):
+        self.assertEquals(self.m1.foo(), 1)
+        with self.assertRaises(AssertionError):
+            self.m1.foo()
+
+    def test_it_fails_if_methods_are_not_invoked_in_the_correct_order(self):
+        self.assertEquals(self.m1.foo(), 1)
+        print self.expectation_list
+        with self.assertRaises(AssertionError):
+            self.m1.bar()
+
+    def test_it_fails_if_methods_are_not_invoked_in_the_correct_order_of_objects(self):
+        with self.assertRaises(AssertionError):
+            self.m2.foo()
 
 class TestMockWithExpectationList(TestCase):
     def setUp(self):
         self.d = MockErrorDelegate()
 
     def test_it_does_not_validate(self):
-        m = Mock()
-        m.__expectations__ = ExpectationList(Expectation('foo', returns=42), delegate=self.d)
+        m = Mock(expectations=ExpectationList(Expectation(None, 'foo', returns=42), delegate=self.d))
         with self.assertRaises(AssertionError):
             verify_mock(m)
 
     def test_it_can_raise_error(self):
-        m = Mock()
-        m.__expectations__ = ExpectationList(Expectation.raises('foo', TypeError), delegate=self.d)
+        m = Mock(error_delegate=self.d)
+        m.expects.foo().and_raises(TypeError)
         with self.assertRaises(TypeError):
             m.foo()
 
     def test_it_should_allow_attr_access_with_expectation(self):
-        m = Mock()
-        m.__expectations__ = ExpectationList(Expectation('foo', returns=42), delegate=self.d)
+        m = Mock(expectations=ExpectationList(Expectation(None, 'foo', returns=42), delegate=self.d))
         self.assertEqual(m.foo, 42)
         with self.assertRaises(AssertionError):
             m.foo
 
     def test_it_should_allow_method_invocation_with_expectations(self):
-        m = Mock()
-        m.__invocations__ = set(('foo',))
-        m.__expectations__ = ExpectationList(Expectation('foo', returns=Invoke(lambda: 2)), delegate=self.d)
+        m = Mock(error_delegate=self.d)
+        m.expects.foo().and_returns(2)
         self.assertEqual(m.foo(), 2)
         with self.assertRaises(AssertionError):
             m.foo()
 
     def test_it_expects_specified_ordering(self):
         m = Mock()
-        m.__invocations__ = set(('foo', 'bar'))
-        m.__expectations__ = ExpectationList(
-            Expectation('foo', returns=Invoke(lambda: 2)),
-            Expectation('bar', returns=Invoke(lambda: 3)),
-            delegate=self.d
-        )
+        m.expects.foo().and_returns(2)
+        m.expects.bar().and_returns(3)
         with self.assertRaises(AssertionError):
             m.bar()
         self.assertEqual(m.foo(), 2)
@@ -157,28 +188,22 @@ class TestMockWithExpectationList(TestCase):
 
     def test_it_should_allow_call_with_expectations(self):
         m = Mock()
-        m.__invocations__ = set(('__call__',))
-        m.__expectations__ = ExpectationList(Expectation('__call__', returns=1), delegate=self.d)
+        m.expects.__call__().and_returns(1)
         self.assertEqual(m(), 1)
         with self.assertRaises(AssertionError):
             m()
 
     def test_it_should_allow_magic_methods_with_expectations(self):
         m = Mock()
-        m.__invocations__ = set(('__add__',))
-        m.__expectations__ = ExpectationList(Expectation('__add__', returns=4), delegate=self.d)
+        m.expects.__add__(f.ANYTHING).and_returns(4)
         self.assertEqual(m + 2, 4)
         with self.assertRaises(AssertionError):
             m + 2
 
     def test_it_should_allow_multiple_calls_to_same_method_with_expectations(self):
-        m = Mock()
-        m.__invocations__ = set(('foo',))
-        m.__expectations__ = ExpectationList(
-            Expectation('foo', returns=1),
-            Expectation('foo', returns=2),
-            delegate=self.d
-        )
+        m = Mock(error_delegate=self.d)
+        m.expects.foo().and_returns(1)
+        m.expects.foo().and_returns(2)
         self.assertEqual(m.foo(), 1)
         self.assertEqual(m.foo(), 2)
         with self.assertRaises(AssertionError):
@@ -189,27 +214,18 @@ class TestMockWithExpectationSet(TestCase):
         self.d = MockErrorDelegate()
 
     def test_it_expects_regardless_of_order(self):
-        m = Mock()
-        m.__invocations__ = set(('foo', 'bar'))
-        m.__expectations__ = ExpectationSet(
-            Expectation('foo', returns=2),
-            Expectation('bar', returns=4),
-            delegate=self.d,
-        )
+        m = Mock(ordered=False)
+        m.expects.foo().and_returns(2)
+        m.expects.bar().and_returns(4)
         self.assertEqual(m.bar(), 4)
         self.assertEqual(m.foo(), 2)
 
     def test_it_should_allow_multiple_calls_to_same_method_with_expectations(self):
         m = Mock()
-        m.__invocations__ = set(('foo',))
-        m.__expectations__ = ExpectationSet(
-            Expectation('foo', returns=1),
-            Expectation('foo', returns=2),
-            delegate=self.d,
-        )
+        m.expects.foo().and_returns(1)
+        m.expects.foo().and_returns(2)
         self.assertEqual(m.foo(), 1)
         self.assertEqual(m.foo(), 2)
         with self.assertRaises(AssertionError):
             m.foo()
-
 
