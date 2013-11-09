@@ -30,7 +30,6 @@ Then you can import it::
 
   from describe import Mock, stub, expect, verify_mock  # Primary features
   from describe import flags                            # Argument matching
-  from describe import with_metadata                    # Minor feature
 
 .. _pip: http://www.pip-installer.org/en/latest/index.html
 .. _easy_install: http://peak.telecommunity.com/DevCenter/EasyInstall

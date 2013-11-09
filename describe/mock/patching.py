@@ -2,7 +2,7 @@ import sys
 from types import ModuleType
 from functools import wraps
 
-from describe.utils import Replace, with_metadata
+from describe.utils import Replace
 from describe.mock.stub import stub
 
 __all__ = ['patch']
@@ -45,14 +45,11 @@ class DictReplacement(object):
         self.stop()
 
     def __call__(self, func):
-        def decorator(fn):
-            @wraps(fn)
-            def decorated(*args, **kwargs):
-                with self:
-                    return fn(*args, **kwargs)
-            return decorated
-
-        return with_metadata(decorator)(func)
+        @wraps(func)
+        def decorated(*args, **kwargs):
+            with self:
+                return func(*args, **kwargs)
+        return decorated
 
 
 class Patcher(object):

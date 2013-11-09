@@ -20,7 +20,6 @@ class TestReplace(TestCase):
 
         wrapped = Replace(sys, 'stdout', instance)(foo)
         wrapped()
-        self.assertTrue(hasattr(wrapped, '__wraps__'))
         self.assertEqual(state['count'], 1)
 
     def test_replacement_of_attribute(self):

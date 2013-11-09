@@ -4,7 +4,6 @@ from mock import Mock, patch
 
 from describe.mock.patching import patch as patcher
 from describe.mock.patching import DictReplacement
-from describe.utils import with_metadata
 from describe.mock.stub import stub
 
 import os.path
@@ -25,7 +24,6 @@ class DescribeDictReplacement(TestCase):
 
         wrapped_verify = DictReplacement(foo, {'b': 3, 'c': 4})(verify)
         wrapped_verify()
-        self.assertTrue(hasattr(wrapped_verify, '__wraps__'))
         self.assertEqual(state['count'], 1)
 
 

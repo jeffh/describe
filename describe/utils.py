@@ -31,34 +31,9 @@ class Replace(object):
         self.stop()
 
     def __call__(self, func):
-        def decorator(fn):
-            @wraps(fn)
-            def decorated(*args, **kwargs):
-                with self as obj:
-                    return fn(obj, *args, **kwargs)
-            return decorated
-        return with_metadata(decorator)(func)
-
-
-def with_metadata(decorator):
-    """Creates a new decorator that records the function metadata on the generated
-    decorated function.
-    """
-    @wraps(decorator)
-    def new_decorator(func):
-        decorated = decorator(func)
-        # if the decorator is a "no-op", do nothing
-        if not callable(decorator):
-            return decorated
-        # record data
-        decorated.__decorator__ = decorator
-
-        if isinstance(func, partial):
-            # partials are objects that store the true function somewhere else
-            decorated.__wraps__ = func.keywords['wrapped']
-        else:
-            decorated.__wraps__ = func
+        @wraps(func)
+        def decorated(*args, **kwargs):
+            with self as obj:
+                return func(obj, *args, **kwargs)
         return decorated
-
-    return new_decorator
 
