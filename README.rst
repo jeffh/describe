@@ -9,7 +9,7 @@ It is worth noting the `development version`_ breaks the existing API.
 .. _Behavior Driven Development: http://en.wikipedia.org/wiki/Behavior_Driven_Development
 .. _BDD: http://en.wikipedia.org/wiki/Behavior_Driven_Development
 .. _RSpec: http://rspec.info/
-.. _Jasmine: http://pivotal.github.com/jasmine/
+.. _Jasmine: https://jasmine.github.io/
 .. _Mote: https://github.com/garybernhardt/mote
 .. _Dingus: https://github.com/garybernhardt/dingus
 .. _development version: https://github.com/jeffh/describe/tarball/dev#egg=describe-dev
